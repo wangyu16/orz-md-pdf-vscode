@@ -4,7 +4,7 @@ const vscode = require('vscode');
 const path = require('path');
 const fs = require('fs');
 const { Pipeline } = require('../Pipeline');
-const { embedMarkdownInPdf } = require('../../../pipeline-model/src/embed');
+const { embedMarkdownInPdf } = require('../pipeline-model/src/embed');
 
 /**
  * "MD-PDF: Convert .md to .md.pdf" command.

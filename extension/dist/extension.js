@@ -4,9 +4,9 @@ var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 
-// ../pipeline-model/src/embed.js
+// src/pipeline-model/src/embed.js
 var require_embed = __commonJS({
-  "../pipeline-model/src/embed.js"(exports2, module2) {
+  "src/pipeline-model/src/embed.js"(exports2, module2) {
     "use strict";
     var fs = require("fs");
     var path = require("path");
@@ -86,8 +86,14 @@ var require_Pipeline = __commonJS({
     var path = require("path");
     var fs = require("fs");
     var os = require("os");
-    var vscode2 = require("vscode");
-    var PIPELINE_ROOT = path.resolve(__dirname, "../../pipeline-model/src");
+    var PIPELINE_PACKAGE_ROOT = path.resolve(__dirname, "../src/pipeline-model");
+    var PIPELINE_ROOT = path.join(PIPELINE_PACKAGE_ROOT, "src");
+    function resolvePipelinePackageDir(packageName) {
+      const packageEntryPath = require.resolve(packageName, {
+        paths: [PIPELINE_PACKAGE_ROOT, __dirname]
+      });
+      return path.dirname(packageEntryPath);
+    }
     var { parseMarkdown } = require(path.join(PIPELINE_ROOT, "parse"));
     var { extractDocumentSettings } = require(path.join(PIPELINE_ROOT, "config/settings-normalize"));
     var { mergeCoreSettings } = require(path.join(PIPELINE_ROOT, "config/merge-settings"));
@@ -96,10 +102,13 @@ var require_Pipeline = __commonJS({
     var { processFlowDirectives } = require(path.join(PIPELINE_ROOT, "nyml/flow-directives"));
     var { processElements } = require(path.join(PIPELINE_ROOT, "nyml/elements"));
     var { generatePagedHtml } = require(path.join(PIPELINE_ROOT, "render/page-template"));
-    var PIPELINE_NM = path.resolve(PIPELINE_ROOT, "../node_modules");
-    var PAGEDJS_LOCAL_PATH = path.join(PIPELINE_NM, "pagedjs/dist/paged.polyfill.js");
-    var MERMAID_LOCAL_PATH = path.join(PIPELINE_NM, "mermaid/dist/mermaid.min.js");
-    var SMILES_DRAWER_LOCAL_PATH = path.join(PIPELINE_NM, "smiles-drawer/dist/smiles-drawer.min.js");
+    var PAGEDJS_LOCAL_PATH = path.join(resolvePipelinePackageDir("pagedjs"), "../dist/paged.polyfill.js");
+    var MERMAID_LOCAL_PATH = require.resolve("mermaid/dist/mermaid.min.js", {
+      paths: [PIPELINE_PACKAGE_ROOT, __dirname]
+    });
+    var SMILES_DRAWER_LOCAL_PATH = require.resolve("smiles-drawer/dist/smiles-drawer.min.js", {
+      paths: [PIPELINE_PACKAGE_ROOT, __dirname]
+    });
     var CHROMIUM_CANDIDATES = [
       process.env.CHROMIUM_PATH,
       "/usr/bin/google-chrome",

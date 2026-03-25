@@ -3,11 +3,19 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const vscode = require('vscode');
 
-// Resolve pipeline-model root relative to this file's location.
-// extension/src/Pipeline.js  →  pipeline-model/
-const PIPELINE_ROOT = path.resolve(__dirname, '../../pipeline-model/src');
+// Resolve pipeline-model paths relative to the bundled extension runtime.
+// At runtime `__dirname` is extension/dist, while the moved pipeline sources and
+// their dedicated node_modules live under extension/src/pipeline-model.
+const PIPELINE_PACKAGE_ROOT = path.resolve(__dirname, '../src/pipeline-model');
+const PIPELINE_ROOT = path.join(PIPELINE_PACKAGE_ROOT, 'src');
+
+function resolvePipelinePackageDir(packageName) {
+    const packageEntryPath = require.resolve(packageName, {
+        paths: [PIPELINE_PACKAGE_ROOT, __dirname],
+    });
+    return path.dirname(packageEntryPath);
+}
 
 const { parseMarkdown }           = require(path.join(PIPELINE_ROOT, 'parse'));
 const { extractDocumentSettings } = require(path.join(PIPELINE_ROOT, 'config/settings-normalize'));
@@ -19,11 +27,15 @@ const { processElements }         = require(path.join(PIPELINE_ROOT, 'nyml/eleme
 const { generatePagedHtml }       = require(path.join(PIPELINE_ROOT, 'render/page-template'));
 
 // Absolute paths to bundled library files (served to webview or Puppeteer via file://).
-// Resolve from the pipeline-model package root, not from this file's location.
-const PIPELINE_NM = path.resolve(PIPELINE_ROOT, '../node_modules');
-const PAGEDJS_LOCAL_PATH       = path.join(PIPELINE_NM, 'pagedjs/dist/paged.polyfill.js');
-const MERMAID_LOCAL_PATH       = path.join(PIPELINE_NM, 'mermaid/dist/mermaid.min.js');
-const SMILES_DRAWER_LOCAL_PATH = path.join(PIPELINE_NM, 'smiles-drawer/dist/smiles-drawer.min.js');
+// These packages are installed under the moved pipeline-model package, not the
+// top-level extension package.
+const PAGEDJS_LOCAL_PATH = path.join(resolvePipelinePackageDir('pagedjs'), '../dist/paged.polyfill.js');
+const MERMAID_LOCAL_PATH = require.resolve('mermaid/dist/mermaid.min.js', {
+    paths: [PIPELINE_PACKAGE_ROOT, __dirname],
+});
+const SMILES_DRAWER_LOCAL_PATH = require.resolve('smiles-drawer/dist/smiles-drawer.min.js', {
+    paths: [PIPELINE_PACKAGE_ROOT, __dirname],
+});
 
 // Chromium candidates (same list as convert.js).
 const CHROMIUM_CANDIDATES = [

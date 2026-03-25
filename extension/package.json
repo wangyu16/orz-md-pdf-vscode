@@ -8,6 +8,20 @@
   "categories": ["Other"],
   "license": "MIT",
   "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCustomEditor:orzMdPdf.editor",
+    "onCommand:orzMdPdf.newFile",
+    "onCommand:orzMdPdf.convertMd",
+    "onCommand:orzMdPdf.exportPdf",
+    "onCommand:orzMdPdf.togglePreview"
+  ],
+  "files": [
+    "dist/**",
+    "src/**",
+    "src/pipeline-model/**",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "node build.js",
     "watch": "node build.js --watch",

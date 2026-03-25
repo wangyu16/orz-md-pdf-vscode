@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { WELCOME_MARKDOWN } = require('../MdPdfDocument');
 const { Pipeline } = require('../Pipeline');
-const { embedMarkdownInPdf } = require('../../../pipeline-model/src/embed');
+const { embedMarkdownInPdf } = require('../pipeline-model/src/embed');
 
 /**
  * "MD-PDF: New File" command.
