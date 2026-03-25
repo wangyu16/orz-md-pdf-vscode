@@ -97,8 +97,8 @@ async function convertToPdf(inputMd, outputPdf, settings = {}) {
 module.exports = { convertToPdf };
 
 if (require.main === module) {
-    const inputMd = path.resolve(process.argv[2] || path.join(__dirname, '../test/core-smoke.md'));
-    const outputPdf = path.resolve(process.argv[3] || path.join(__dirname, '../out/core-smoke.pdf'));
+    const inputMd = path.resolve(process.argv[2] || path.join(__dirname, '../../../test/core-smoke.md'));
+    const outputPdf = path.resolve(process.argv[3] || path.join(__dirname, '../../../out/core-smoke.pdf'));
 
     convertToPdf(inputMd, outputPdf).catch((error) => {
         console.error('Conversion error:', error.message);

@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "engines": { "vscode": "^1.88.0" },
   "publisher": "orz-how",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:wangyu16/orz-md-pdf-vscode.git"
+  },
   "categories": ["Other"],
   "license": "MIT",
   "main": "./dist/extension.js",
@@ -18,7 +22,6 @@
   "files": [
     "dist/**",
     "src/**",
-    "src/pipeline-model/**",
     "README.md",
     "LICENSE"
   ],
@@ -79,7 +82,31 @@
     "esbuild": "^0.21.0"
   },
   "dependencies": {
+    "@fontsource/comic-neue": "^5.2.7",
+    "@fontsource/courier-prime": "^5.2.8",
+    "@fontsource/crimson-pro": "^5.2.8",
+    "@fontsource/ibm-plex-sans": "^5.2.8",
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/lora": "^5.2.8",
+    "@fontsource/lxgw-wenkai-tc": "^5.2.8",
+    "@fontsource/ma-shan-zheng": "^5.2.9",
+    "@fontsource/neucha": "^5.2.8",
+    "@fontsource/noto-sans": "^5.2.10",
+    "@fontsource/noto-sans-sc": "^5.2.8",
+    "@fontsource/noto-sans-tc": "^5.2.8",
+    "@fontsource/noto-serif": "^5.2.9",
+    "@fontsource/noto-serif-sc": "^5.2.8",
+    "@fontsource/noto-serif-tc": "^5.2.8",
+    "@fontsource/raleway": "^5.2.8",
+    "@fontsource/roboto": "^5.2.10",
+    "@fontsource/source-serif-4": "^5.2.9",
+    "@orz-how/markdown-parser": "git+https://github.com/wangyu16/orz-markdown.git",
+    "highlight.js": "^11.11.1",
+    "mermaid": "^11.13.0",
+    "node-html-parser": "^7.1.0",
+    "pagedjs": "^0.4.3",
     "pdf-lib": "^1.17.1",
-    "puppeteer-core": "^22.0.0"
+    "puppeteer-core": "^22.0.0",
+    "smiles-drawer": "^2.2.1"
   }
 }

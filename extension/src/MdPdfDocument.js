@@ -2,7 +2,7 @@
 
 const vscode = require('vscode');
 const path = require('path');
-const { embedMarkdownInPdf, extractMarkdownFromPdf } = require('./pipeline-model/src/embed');
+const { embedMarkdownInPdf, extractMarkdownFromPdf } = require('./pipeline/embed');
 const { Pipeline } = require('./Pipeline');
 
 const WELCOME_MARKDOWN = `\

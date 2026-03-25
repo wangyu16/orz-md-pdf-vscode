@@ -192,6 +192,10 @@ function inlineFontCssFile(packageName, cssFileName) {
     const cssPath = path.join(packageDir, cssFileName);
     let css = fs.readFileSync(cssPath, 'utf8');
 
+    // Chromium-based webviews and Puppeteer both support woff2, so strip the
+    // woff fallback before inlining to avoid shipping duplicate font binaries.
+    css = css.replace(/,\s*url\((\.\/files\/[^)]+\.woff)\)\s*format\('woff'\)/g, '');
+
     css = css.replace(/url\((\.\/files\/[^)]+)\)/g, (match, relativePath) => {
         const cleanPath = relativePath.replace(/^['"]|['"]$/g, '');
         const fontPath = path.join(packageDir, cleanPath);

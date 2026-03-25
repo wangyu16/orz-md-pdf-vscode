@@ -3,7 +3,7 @@
 const path = require('path');
 
 const DEFAULT_PREVIEW_PORT = 3000;
-const DEFAULT_PREVIEW_SOURCE = path.resolve(__dirname, '../../test/core-smoke.md');
+const DEFAULT_PREVIEW_SOURCE = path.resolve(__dirname, '../../../../test/core-smoke.md');
 
 function resolvePreviewPort(cliArg) {
     const rawValue = cliArg || process.env.MDPDF_PREVIEW_PORT;

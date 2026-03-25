@@ -12,7 +12,7 @@ esbuild.context({
     target: 'node18',
     external: [
         'vscode',
-        // These large native modules stay as runtime requires from pipeline-model/node_modules.
+        // These large runtime modules stay external and load from extension/node_modules.
         'puppeteer-core',
         'pagedjs',
         'mermaid',

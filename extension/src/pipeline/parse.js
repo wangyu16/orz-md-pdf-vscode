@@ -56,8 +56,8 @@ async function parseMarkdown(source) {
 module.exports = { parseMarkdown };
 
 if (require.main === module) {
-    const inputFile = process.argv[2] || path.join(__dirname, '../test/core-smoke.md');
-    const outDir = path.join(__dirname, '../out');
+    const inputFile = process.argv[2] || path.join(__dirname, '../../../test/core-smoke.md');
+    const outDir = path.join(__dirname, '../../../out');
     fs.mkdirSync(outDir, { recursive: true });
 
     const source = fs.readFileSync(inputFile, 'utf8');

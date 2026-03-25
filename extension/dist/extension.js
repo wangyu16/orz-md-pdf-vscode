@@ -4,9 +4,9 @@ var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 
-// src/pipeline-model/src/embed.js
+// src/pipeline/embed.js
 var require_embed = __commonJS({
-  "src/pipeline-model/src/embed.js"(exports2, module2) {
+  "src/pipeline/embed.js"(exports2, module2) {
     "use strict";
     var fs = require("fs");
     var path = require("path");
@@ -53,9 +53,9 @@ var require_embed = __commonJS({
     }
     module2.exports = { embedMarkdownInPdf, extractMarkdownFromPdf };
     if (require.main === module2) {
-      const inputPdf = path.resolve(process.argv[2] || path.join(__dirname, "../out/core-smoke.pdf"));
-      const inputMd = path.resolve(process.argv[3] || path.join(__dirname, "../test/core-smoke.md"));
-      const outputMdPdf = path.resolve(process.argv[4] || path.join(__dirname, "../out/core-smoke.md.pdf"));
+      const inputPdf = path.resolve(process.argv[2] || path.join(__dirname, "../../../out/core-smoke.pdf"));
+      const inputMd = path.resolve(process.argv[3] || path.join(__dirname, "../../../test/core-smoke.md"));
+      const outputMdPdf = path.resolve(process.argv[4] || path.join(__dirname, "../../../out/core-smoke.md.pdf"));
       (async () => {
         if (!fs.existsSync(inputPdf)) {
           console.error(`Input PDF not found: ${inputPdf}`);
@@ -86,11 +86,11 @@ var require_Pipeline = __commonJS({
     var path = require("path");
     var fs = require("fs");
     var os = require("os");
-    var PIPELINE_PACKAGE_ROOT = path.resolve(__dirname, "../src/pipeline-model");
-    var PIPELINE_ROOT = path.join(PIPELINE_PACKAGE_ROOT, "src");
+    var EXTENSION_ROOT = path.resolve(__dirname, "..");
+    var PIPELINE_ROOT = path.resolve(__dirname, "../src/pipeline");
     function resolvePipelinePackageDir(packageName) {
       const packageEntryPath = require.resolve(packageName, {
-        paths: [PIPELINE_PACKAGE_ROOT, __dirname]
+        paths: [EXTENSION_ROOT, __dirname]
       });
       return path.dirname(packageEntryPath);
     }
@@ -104,10 +104,10 @@ var require_Pipeline = __commonJS({
     var { generatePagedHtml } = require(path.join(PIPELINE_ROOT, "render/page-template"));
     var PAGEDJS_LOCAL_PATH = path.join(resolvePipelinePackageDir("pagedjs"), "../dist/paged.polyfill.js");
     var MERMAID_LOCAL_PATH = require.resolve("mermaid/dist/mermaid.min.js", {
-      paths: [PIPELINE_PACKAGE_ROOT, __dirname]
+      paths: [EXTENSION_ROOT, __dirname]
     });
     var SMILES_DRAWER_LOCAL_PATH = require.resolve("smiles-drawer/dist/smiles-drawer.min.js", {
-      paths: [PIPELINE_PACKAGE_ROOT, __dirname]
+      paths: [EXTENSION_ROOT, __dirname]
     });
     var CHROMIUM_CANDIDATES = [
       process.env.CHROMIUM_PATH,

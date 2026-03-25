@@ -4,15 +4,15 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-// Resolve pipeline-model paths relative to the bundled extension runtime.
-// At runtime `__dirname` is extension/dist, while the moved pipeline sources and
-// their dedicated node_modules live under extension/src/pipeline-model.
-const PIPELINE_PACKAGE_ROOT = path.resolve(__dirname, '../src/pipeline-model');
-const PIPELINE_ROOT = path.join(PIPELINE_PACKAGE_ROOT, 'src');
+// Resolve unified pipeline paths relative to the bundled extension runtime.
+// At runtime `__dirname` is extension/dist, while the pipeline sources live
+// under extension/src/pipeline and dependencies live under extension/node_modules.
+const EXTENSION_ROOT = path.resolve(__dirname, '..');
+const PIPELINE_ROOT = path.resolve(__dirname, '../src/pipeline');
 
 function resolvePipelinePackageDir(packageName) {
     const packageEntryPath = require.resolve(packageName, {
-        paths: [PIPELINE_PACKAGE_ROOT, __dirname],
+        paths: [EXTENSION_ROOT, __dirname],
     });
     return path.dirname(packageEntryPath);
 }
@@ -27,14 +27,13 @@ const { processElements }         = require(path.join(PIPELINE_ROOT, 'nyml/eleme
 const { generatePagedHtml }       = require(path.join(PIPELINE_ROOT, 'render/page-template'));
 
 // Absolute paths to bundled library files (served to webview or Puppeteer via file://).
-// These packages are installed under the moved pipeline-model package, not the
-// top-level extension package.
+// These packages are installed under the top-level extension package.
 const PAGEDJS_LOCAL_PATH = path.join(resolvePipelinePackageDir('pagedjs'), '../dist/paged.polyfill.js');
 const MERMAID_LOCAL_PATH = require.resolve('mermaid/dist/mermaid.min.js', {
-    paths: [PIPELINE_PACKAGE_ROOT, __dirname],
+    paths: [EXTENSION_ROOT, __dirname],
 });
 const SMILES_DRAWER_LOCAL_PATH = require.resolve('smiles-drawer/dist/smiles-drawer.min.js', {
-    paths: [PIPELINE_PACKAGE_ROOT, __dirname],
+    paths: [EXTENSION_ROOT, __dirname],
 });
 
 // Chromium candidates (same list as convert.js).

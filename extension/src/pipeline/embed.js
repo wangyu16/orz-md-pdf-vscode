@@ -58,9 +58,9 @@ async function extractMarkdownFromPdf(pdfBytes) {
 module.exports = { embedMarkdownInPdf, extractMarkdownFromPdf };
 
 if (require.main === module) {
-    const inputPdf = path.resolve(process.argv[2] || path.join(__dirname, '../out/core-smoke.pdf'));
-    const inputMd = path.resolve(process.argv[3] || path.join(__dirname, '../test/core-smoke.md'));
-    const outputMdPdf = path.resolve(process.argv[4] || path.join(__dirname, '../out/core-smoke.md.pdf'));
+    const inputPdf = path.resolve(process.argv[2] || path.join(__dirname, '../../../out/core-smoke.pdf'));
+    const inputMd = path.resolve(process.argv[3] || path.join(__dirname, '../../../test/core-smoke.md'));
+    const outputMdPdf = path.resolve(process.argv[4] || path.join(__dirname, '../../../out/core-smoke.md.pdf'));
 
     (async () => {
         if (!fs.existsSync(inputPdf)) {
