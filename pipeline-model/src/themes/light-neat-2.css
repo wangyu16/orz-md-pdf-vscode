@@ -1,0 +1,473 @@
+/*
+ * Theme: light-neat-2
+ * Style: Warm earthy modern. Teal/green accent (#167a72). Rounded, warm-neutral
+ *        palette. Diamond list bullets. Stacked tab-bar style.
+ * Colors: warm neutral palette; bg supplied by page_background.
+ * Font family: set via font_preset / font_heading_preset.
+ */
+
+/* ── Color tokens ───────────────────────────────────────────────────────── */
+:root {
+  --surface:       #fffdfa;
+  --surface-2:     #f8f6f1;
+  --surface-3:     #f1eee7;
+  --border:        #ddd8cd;
+  --border-strong: #c9c1b1;
+  --border-soft:   #ece8de;
+
+  --text:          #2d322f;
+  --text-soft:     #62685f;
+  --text-muted:    #8a8f87;
+  --heading:       #181c1b;
+
+  --accent:        #167a72;
+  --accent-2:      #2f9f96;
+  --accent-ink:    #175651;
+  --accent-warm:   #d48f41;
+
+  --link:          #0f6a85;
+  --link-hover:    #0a4d60;
+  --link-visited:  #5f6da9;
+
+  --code-bg:       #f4f1eb;
+  --code-bg-2:     #eeebe4;
+  --code-border:   #d8d1c5;
+  --code-text:     #36433d;
+  --inline-code:   #8b4d1a;
+
+  --success-border: #b8dabf;
+  --success-text:   #2e7a45;
+  --note-border:    #ccd3f3;
+  --note-text:      #52639e;
+  --info-border:    #b8d8ea;
+  --info-text:      #1e668d;
+  --warning-border: #ecd39c;
+  --warning-text:   #916516;
+  --danger-border:  #e9b8b8;
+  --danger-text:    #994545;
+
+  --span-red:    #b34a4a;
+  --span-yellow: #8f6711;
+  --span-green:  #2f7c49;
+  --span-blue:   #21698a;
+
+  /* Relative font scale */
+  --fs-50:  0.78em;
+  --fs-75:  0.9em;
+  --fs-200: 1.12em;
+  --fs-300: 1.26em;
+  --fs-400: 1.48em;
+  --fs-500: 1.9em;
+
+  --space-3: 0.94rem;
+  --space-4: 1.35rem;
+  --space-5: 1.9rem;
+  --space-6: 2.7rem;
+
+  --radius-sm: 6px;
+  --radius:    14px;
+  --radius-lg: 22px;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+.markdown-body {
+  display: flow-root;
+  color: var(--text);
+}
+
+/* ── Headings ───────────────────────────────────────────────────────────── */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  clear: both;
+  position: relative;
+  margin: 2.15em 0 0.72em;
+  color: var(--heading);
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.markdown-body h1 {
+  padding: 0.3em 0 0.48em;
+  font-size: var(--fs-500);
+  border-bottom: 2px solid var(--border-strong);
+}
+
+.markdown-body h1::before {
+  content: 'SECTION';
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--accent-ink);
+  font-size: var(--fs-50);
+  font-weight: 700;
+  letter-spacing: 0.28em;
+}
+
+.markdown-body h1::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 6rem;
+  height: 4px;
+  background: var(--accent);
+}
+
+.markdown-body h2 {
+  font-size: var(--fs-400);
+  padding-left: 0.9rem;
+}
+
+.markdown-body h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.18em;
+  bottom: 0.18em;
+  width: 4px;
+  background: var(--accent-warm);
+}
+
+.markdown-body h3 {
+  display: block;
+  width: fit-content;
+  font-size: var(--fs-300);
+  padding: 0.18em 0.7rem 0.28em;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.markdown-body h4 { font-size: var(--fs-200); color: #274542; }
+.markdown-body h5 { font-size: 1em; color: #4b625f; }
+.markdown-body h6 {
+  font-size: var(--fs-75);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-soft);
+}
+
+/* ── Paragraphs & links ─────────────────────────────────────────────────── */
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body blockquote,
+.markdown-body pre,
+.markdown-body table,
+.markdown-body details.spoil,
+.markdown-body .tabs,
+.markdown-body .cols {
+  margin-bottom: var(--space-5);
+}
+
+.markdown-body a {
+  color: var(--link);
+  text-decoration-thickness: 1.4px;
+  text-decoration-color: rgba(15,106,133,0.3);
+  text-underline-offset: 0.18em;
+}
+
+.markdown-body a:hover   { color: var(--link-hover); }
+.markdown-body a:visited { color: var(--link-visited); }
+
+.markdown-body strong { color: var(--heading); font-weight: 700; }
+.markdown-body em { color: #4f5953; }
+
+.markdown-body mark {
+  padding: 0.08em 0.3em;
+  color: #68460d;
+  background: rgba(228,177,72,0.22);
+  border-radius: 0.25rem;
+}
+
+/* ── Code ───────────────────────────────────────────────────────────────── */
+.markdown-body code {
+  font-size: 0.9em;
+  color: var(--inline-code);
+  background: rgba(255,255,255,0.18);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 7px;
+  padding: 0.16em 0.42em;
+}
+
+.markdown-body pre {
+  overflow-x: auto;
+  padding: 1.2rem 1.25rem;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 16px;
+}
+
+.markdown-body pre code {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--code-text);
+  font-size: var(--fs-75);
+  line-height: 1.72;
+}
+
+/* ── Blockquote ─────────────────────────────────────────────────────────── */
+.markdown-body blockquote {
+  position: relative;
+  padding: 1.15rem 1.25rem 1.15rem 1.55rem;
+  color: #49534f;
+  background: rgba(255,255,255,0.16);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 16px;
+}
+
+.markdown-body blockquote::before {
+  content: '❝';
+  position: absolute;
+  left: 0.7rem;
+  top: 0.35rem;
+  color: rgba(22,122,114,0.26);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.markdown-body blockquote > *:last-child { margin-bottom: 0; }
+
+/* ── Lists ──────────────────────────────────────────────────────────────── */
+.markdown-body ul,
+.markdown-body ol { padding-left: 1.45rem; }
+
+.markdown-body li { margin-bottom: 0.45rem; }
+
+.markdown-body ul { list-style: none; }
+
+.markdown-body ul > li { position: relative; }
+
+.markdown-body ul > li::before {
+  content: '';
+  position: absolute;
+  left: -1.05rem;
+  top: 0.76em;
+  width: 0.42rem;
+  height: 0.42rem;
+  background: var(--accent);
+  transform: rotate(45deg);
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.markdown-body table {
+  border-spacing: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  width: auto;
+  max-width: 100%;
+  table-layout: auto;
+}
+
+.markdown-body thead th {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--heading);
+  font-size: var(--fs-75);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: left;
+}
+
+.markdown-body tbody td {
+  padding: 0.86rem 1rem;
+  border-bottom: 1px solid var(--border-soft);
+  vertical-align: top;
+}
+
+.markdown-body tbody tr:last-child td { border-bottom: 0; }
+
+/* ── HR: dashed teal rule ───────────────────────────────────────────────── */
+.markdown-body hr {
+  height: 1px;
+  margin: var(--space-6) 0;
+  border: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 12px, rgba(22,122,114,0.28) 12px 24px, transparent 24px 36px);
+}
+
+/* ── Images ─────────────────────────────────────────────────────────────── */
+.markdown-body img {
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.markdown-body p > img { display: inline; margin: 0; border-radius: 10px; }
+
+/* ── Callout containers ─────────────────────────────────────────────────── */
+.markdown-body div.success,
+.markdown-body div.note,
+.markdown-body div.info,
+.markdown-body div.warning,
+.markdown-body div.danger {
+  position: relative;
+  margin-bottom: var(--space-5);
+  padding: 1rem 1.1rem;
+  border: 1px solid;
+  border-radius: 14px;
+}
+
+.markdown-body div.success { color: var(--success-text); border-color: var(--success-border); }
+.markdown-body div.note    { color: var(--note-text);    border-color: var(--note-border); }
+.markdown-body div.info    { color: var(--info-text);    border-color: var(--info-border); }
+.markdown-body div.warning { color: var(--warning-text); border-color: var(--warning-border); }
+.markdown-body div.danger  { color: var(--danger-text);  border-color: var(--danger-border); }
+
+.markdown-body div.success > *:last-child,
+.markdown-body div.note    > *:last-child,
+.markdown-body div.info    > *:last-child,
+.markdown-body div.warning > *:last-child,
+.markdown-body div.danger  > *:last-child { margin-bottom: 0; }
+
+/* ── Layout helpers ─────────────────────────────────────────────────────── */
+.markdown-body .left {
+  float: left;
+  max-width: min(44%, 22rem);
+  padding: 0.85rem 0.95rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin: 0 var(--space-5) var(--space-4) 0;
+}
+
+.markdown-body .right  { text-align: right;  margin: 0 0 var(--space-5); }
+.markdown-body .center { text-align: center; margin: 0 auto var(--space-5); }
+
+/* ── Spoiler ────────────────────────────────────────────────────────────── */
+.markdown-body details.spoil {
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  background: var(--surface-2);
+}
+
+.markdown-body details.spoil > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.95rem 1.05rem;
+  cursor: pointer;
+  list-style: none;
+  color: var(--heading);
+  font-weight: 700;
+  background: rgba(22,122,114,0.06);
+}
+
+.markdown-body details.spoil > summary::before {
+  content: '▣';
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+.markdown-body details.spoil[open] > summary {
+  border-bottom: 1px dashed var(--border-strong);
+}
+
+.markdown-body details.spoil > :not(summary) { padding: 1rem 1.05rem 1.1rem; }
+
+/* ── Tabs ───────────────────────────────────────────────────────────────── */
+.markdown-body .tabs {
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.markdown-body .tabs-bar {
+  display: flex;
+  overflow-x: auto;
+  background: var(--surface-3);
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+}
+
+.markdown-body .tabs-bar::-webkit-scrollbar { display: none; }
+
+.markdown-body .tabs-bar-btn {
+  border: 0;
+  border-right: 1px solid var(--border);
+  padding: 0.72rem 1rem;
+  background: transparent;
+  color: var(--text-soft);
+  font-size: var(--fs-75);
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.markdown-body .tabs-bar-btn.active {
+  color: #fff;
+  background: var(--accent);
+}
+
+.markdown-body .tab { display: none; padding: 1.08rem 1.12rem 1.22rem; }
+.markdown-body .tab.active { display: block; }
+.markdown-body .tabs:not([data-js]) .tab { display: block; }
+.markdown-body .tabs:not([data-js]) .tab + .tab { border-top: 1px dashed var(--border-strong); }
+
+/* ── Cols ───────────────────────────────────────────────────────────────── */
+.markdown-body .cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.markdown-body .col {
+  min-width: 0;
+  padding: 1rem 1.02rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.markdown-body .col > *:last-child { margin-bottom: 0; }
+
+/* ── TOC ────────────────────────────────────────────────────────────────── */
+.markdown-body nav.toc,
+.markdown-body .toc-list {
+  padding: 1rem 1.12rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+}
+
+/* ── Span color utilities ───────────────────────────────────────────────── */
+.markdown-body span.red    { color: var(--span-red); }
+.markdown-body span.yellow { color: var(--span-yellow); }
+.markdown-body span.green  { color: var(--span-green); }
+.markdown-body span.blue   { color: var(--span-blue); }
+
+/* ── Span badges ────────────────────────────────────────────────────────── */
+.markdown-body span.success,
+.markdown-body span.info,
+.markdown-body span.warning,
+.markdown-body span.danger {
+  padding: 0.18em 0.58em;
+  border: 1px solid;
+  border-radius: 7px;
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.markdown-body span.success { background: rgba(95,173,120,0.13);  color: var(--success-text); border-color: var(--success-border); }
+.markdown-body span.info    { background: rgba(69,150,191,0.12);   color: var(--info-text);    border-color: var(--info-border); }
+.markdown-body span.warning { background: rgba(228,177,72,0.15);   color: var(--warning-text); border-color: var(--warning-border); }
+.markdown-body span.danger  { background: rgba(211,105,105,0.14);  color: var(--danger-text);  border-color: var(--danger-border); }
+
+.markdown-body span.qrcode {
+  padding: 6px;
+  vertical-align: middle;
+  background: #fff;
+  border-radius: 10px;
+}

@@ -1,0 +1,3311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paged Document Editor</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"
+        rel="stylesheet">
+
+    <style>
+        /* --- APP STYLES --- */
+        :root {
+            --bg-dark: #1e1e1e;
+            --bg-panel: #252526;
+            --border: #333;
+            --accent: #007acc;
+            --text-main: #d4d4d4;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            height: 50px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 1rem;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #333;
+        }
+
+        button.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Settings Panel */
+        #settings-panel {
+            position: fixed;
+            top: 50px;
+            right: 0;
+            width: 320px;
+            height: calc(100vh - 50px);
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border);
+            z-index: 100;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        #settings-panel.open {
+            transform: translateX(0);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            color: #fff;
+        }
+
+        .settings-close {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .settings-close:hover {
+            color: #fff;
+        }
+
+        .settings-group {
+            margin-bottom: 20px;
+        }
+
+        .settings-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+
+        .settings-group select,
+        .settings-group input[type="text"],
+        .settings-group input[type="number"],
+        .settings-group input[type="color"] {
+            width: 100%;
+            padding: 8px 10px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .settings-group select:focus,
+        .settings-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .settings-group input[type="color"] {
+            padding: 2px;
+            height: 36px;
+            cursor: pointer;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .settings-row .settings-group {
+            flex: 1;
+        }
+
+        .margin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .margin-grid .settings-group {
+            margin-bottom: 10px;
+        }
+
+        .settings-apply {
+            width: 100%;
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .settings-apply:hover {
+            background: #005a9e;
+        }
+
+        #main-container {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 50px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 250px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            transition: margin-left 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        #sidebar.collapsed {
+            margin-left: -250px;
+        }
+
+        /* File Tree Styles */
+        .file-tree {
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px 0;
+        }
+
+        .tree-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #aaa;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        .tree-item:hover {
+            background: #333;
+            color: #fff;
+        }
+
+        .tree-item.selected {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        /* Drag and Drop Styles */
+        .tree-item.dragging {
+            opacity: 0.5;
+            background: #444;
+        }
+
+        .tree-item.drag-over {
+            background: #3a6d3a;
+            border: 1px dashed #5cb85c;
+            border-radius: 3px;
+        }
+
+        .tree-item.drag-over-invalid {
+            background: #6d3a3a;
+            border: 1px dashed #d9534f;
+            border-radius: 3px;
+        }
+
+        .file-tree.drag-over-root {
+            background: rgba(58, 109, 58, 0.3);
+            border: 1px dashed #5cb85c;
+        }
+
+        .tree-item.folder>.tree-icon::before {
+            content: '📁';
+        }
+
+        .tree-item.folder.expanded>.tree-icon::before {
+            content: '📂';
+        }
+
+        .tree-item.file>.tree-icon::before {
+            content: '📄';
+        }
+
+        .tree-icon {
+            margin-right: 6px;
+            font-size: 0.9rem;
+        }
+
+        .tree-toggle {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 2px;
+            color: #666;
+            font-size: 0.7rem;
+        }
+
+        .tree-toggle:hover {
+            color: #fff;
+        }
+
+        .tree-item.folder>.tree-toggle::before {
+            content: '▶';
+        }
+
+        .tree-item.folder.expanded>.tree-toggle::before {
+            content: '▼';
+        }
+
+        .tree-item.file>.tree-toggle {
+            visibility: hidden;
+        }
+
+        .tree-children {
+            display: none;
+            padding-left: 16px;
+        }
+
+        .tree-children.expanded {
+            display: block;
+        }
+
+        .tree-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tree-name.editing {
+            background: var(--bg-dark);
+            color: #fff;
+            border: 1px solid var(--accent);
+            padding: 1px 4px;
+            outline: none;
+        }
+
+        /* Sidebar Header */
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #fff;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sidebar-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .sidebar-actions button {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            background: transparent;
+            border: 1px solid var(--border);
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            min-width: 150px;
+            display: none;
+        }
+
+        .context-menu.visible {
+            display: block;
+        }
+
+        .context-menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .context-menu-item:hover {
+            background: #333;
+        }
+
+        .context-menu-item.danger {
+            color: #ff6b6b;
+        }
+
+        .context-menu-separator {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 0;
+        }
+
+        /* Save Indicator */
+        .save-indicator {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+
+        .save-indicator.saving {
+            background: #ffa500;
+            color: #000;
+        }
+
+        .save-indicator.saved {
+            background: #4caf50;
+            color: #fff;
+        }
+
+        .save-indicator.unsaved {
+            background: #666;
+            color: #fff;
+        }
+
+        /* Modal/Dialog */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 300px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .modal h4 {
+            margin: 0 0 15px 0;
+            color: #fff;
+        }
+
+        .modal input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .modal input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .modal-actions button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        /* Settings List in Modal */
+        .settings-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 5px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .settings-item:hover {
+            border-color: var(--accent);
+            background: #2a2a2a;
+        }
+
+        .settings-item .settings-icon {
+            margin-right: 10px;
+            font-size: 1.2rem;
+        }
+
+        .settings-item .settings-name {
+            flex: 1;
+            color: #fff;
+        }
+
+        .settings-empty {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+
+        /* History Panel */
+        #history-panel {
+            position: fixed;
+            top: 50px;
+            right: 0;
+            width: 350px;
+            height: calc(100vh - 50px);
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border);
+            z-index: 100;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #history-panel.open {
+            transform: translateX(0);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-header h3 {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #fff;
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .history-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            border-color: var(--accent);
+            background: #2a2a2a;
+        }
+
+        .history-item .history-date {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .history-item .history-preview {
+            font-size: 0.75rem;
+            color: #aaa;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-size: 0.85rem;
+        }
+
+        /* Trash Section */
+        .trash-section {
+            border-top: 1px solid var(--border);
+            margin-top: auto;
+        }
+
+        .trash-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            cursor: pointer;
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .trash-header:hover {
+            background: #333;
+            color: #fff;
+        }
+
+        .trash-header .trash-icon {
+            margin-right: 8px;
+        }
+
+        .trash-header .trash-count {
+            background: #444;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: auto;
+            margin-right: 8px;
+        }
+
+        .trash-toggle {
+            font-size: 0.7rem;
+            color: #666;
+        }
+
+        .trash-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .trash-content.expanded {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .trash-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 15px 6px 25px;
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .trash-item:hover {
+            background: #333;
+        }
+
+        .trash-item-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .trash-item-actions {
+            display: flex;
+            gap: 5px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .trash-item:hover .trash-item-actions {
+            opacity: 1;
+        }
+
+        .trash-item-actions button {
+            padding: 2px 6px;
+            font-size: 0.7rem;
+            border: none;
+            background: transparent;
+            color: #aaa;
+        }
+
+        .trash-item-actions button:hover {
+            color: #fff;
+        }
+
+        .trash-item-actions button.restore:hover {
+            color: #5cb85c;
+        }
+
+        .trash-item-actions button.delete:hover {
+            color: #d9534f;
+        }
+
+        .trash-empty-actions {
+            padding: 8px 15px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .trash-empty-actions button {
+            flex: 1;
+            font-size: 0.75rem;
+            padding: 5px;
+        }
+
+        .trash-empty-actions button.danger {
+            color: #d9534f;
+            border-color: #d9534f;
+        }
+
+        #content-area {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #editor-pane {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg-dark);
+        }
+
+        /* IFRAME PREVIEW */
+        #preview-frame {
+            height: 100%;
+            width: 100%;
+            border: none;
+            background: #525659;
+            border-left: 1px solid var(--border);
+        }
+
+        .pointer-events-none {
+            pointer-events: none;
+        }
+
+        .CodeMirror {
+            height: 100%;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+        }
+
+        /* Split.js Gutter */
+        .gutter {
+            background-color: var(--bg-dark);
+            background-repeat: no-repeat;
+            background-position: 50%;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .gutter.gutter-horizontal {
+            cursor: col-resize;
+            width: 10px;
+            background: var(--bg-dark);
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+        }
+
+        .gutter:hover {
+            background-color: var(--accent);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Loader */
+        .spinner {
+            border: 2px solid #333;
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="toolbar-group">
+            <button id="toggle-sidebar">☰ Files</button>
+            <div class="spinner" id="render-loader"></div>
+        </div>
+        <div class="toolbar-group">
+            <button class="view-btn" data-mode="editor">Editor</button>
+            <button class="view-btn active" data-mode="split">Split</button>
+            <button class="view-btn" data-mode="preview">Preview</button>
+            <button id="settings-btn">⚙ Settings</button>
+            <button id="print-btn">Print / PDF</button>
+        </div>
+    </header>
+
+    <!-- Settings Panel -->
+    <div id="settings-panel">
+        <div class="settings-header">
+            <h3>Page Settings</h3>
+            <button class="settings-close" id="settings-close">×</button>
+        </div>
+
+        <div class="settings-group">
+            <label>Page Size</label>
+            <select id="setting-page-size">
+                <option value="A4">A4 (210 × 297 mm)</option>
+                <option value="A3">A3 (297 × 420 mm)</option>
+                <option value="A5">A5 (148 × 210 mm)</option>
+                <option value="letter">Letter (8.5 × 11 in)</option>
+                <option value="legal">Legal (8.5 × 14 in)</option>
+                <option value="tabloid">Tabloid (11 × 17 in)</option>
+            </select>
+        </div>
+
+        <div class="settings-group">
+            <label>Margins</label>
+            <div class="margin-grid">
+                <div class="settings-group">
+                    <label id="label-margin-top">Top (mm)</label>
+                    <input type="number" id="setting-margin-top" value="20" min="0" max="100" step="1">
+                </div>
+                <div class="settings-group">
+                    <label id="label-margin-bottom">Bottom (mm)</label>
+                    <input type="number" id="setting-margin-bottom" value="20" min="0" max="100" step="1">
+                </div>
+                <div class="settings-group">
+                    <label id="label-margin-left">Left (mm)</label>
+                    <input type="number" id="setting-margin-left" value="20" min="0" max="100" step="1">
+                </div>
+                <div class="settings-group">
+                    <label id="label-margin-right">Right (mm)</label>
+                    <input type="number" id="setting-margin-right" value="20" min="0" max="100" step="1">
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <label>Font Family</label>
+            <select id="setting-font-family">
+                <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                <option value="'Georgia', serif">Georgia</option>
+                <option value="'Arial', sans-serif">Arial</option>
+                <option value="'Helvetica', sans-serif">Helvetica</option>
+                <option value="'Verdana', sans-serif">Verdana</option>
+                <option value="'Trebuchet MS', sans-serif">Trebuchet MS</option>
+                <option value="'Courier New', monospace">Courier New</option>
+                <option value="'Consolas', monospace">Consolas</option>
+            </select>
+        </div>
+
+        <div class="settings-group">
+            <label>Font Size (pt)</label>
+            <input type="number" id="setting-font-size" value="12" min="6" max="72">
+        </div>
+
+        <div class="settings-group">
+            <label>Line Height</label>
+            <input type="number" id="setting-line-height" value="1.5" min="1" max="3" step="0.1">
+        </div>
+
+        <div class="settings-group">
+            <label>Decoration Color (borders, accents)</label>
+            <input type="color" id="setting-decoration-color" value="#000000">
+        </div>
+
+        <div class="settings-group">
+            <label>Page Number Position</label>
+            <select id="setting-page-number-position">
+                <option value="footer-center">Footer Center</option>
+                <option value="footer-left">Footer Left</option>
+                <option value="footer-right">Footer Right</option>
+                <option value="header-center">Header Center</option>
+                <option value="header-left">Header Left</option>
+                <option value="header-right">Header Right</option>
+                <option value="none">None (No Page Numbers)</option>
+            </select>
+        </div>
+
+        <div class="settings-group">
+            <label>Page Number Style</label>
+            <select id="setting-page-number-style">
+                <option value="simple">1</option>
+                <option value="page-n">Page 1</option>
+                <option value="page-n-of-N">Page 1 of 10</option>
+                <option value="n-of-N">1 of 10</option>
+                <option value="n-slash-N">1 / 10</option>
+                <option value="dash-n-dash">- 1 -</option>
+                <option value="brackets">[1]</option>
+                <option value="parentheses">(1)</option>
+            </select>
+        </div>
+
+        <div class="settings-group">
+            <label>First Page Options</label>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+                <label
+                    style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; color: var(--text-main);">
+                    <input type="checkbox" id="setting-first-page-hide-header" style="width: auto;">
+                    Hide header on first page
+                </label>
+                <label
+                    style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; color: var(--text-main);">
+                    <input type="checkbox" id="setting-first-page-hide-footer" style="width: auto;">
+                    Hide footer on first page
+                </label>
+                <label
+                    style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; color: var(--text-main);">
+                    <input type="checkbox" id="setting-first-page-skip-number" style="width: auto;">
+                    Skip page number (start counting from page 2)
+                </label>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <label>Header Text</label>
+            <div class="margin-grid">
+                <div class="settings-group">
+                    <label>Left</label>
+                    <input type="text" id="setting-header-left" placeholder="Empty = hidden">
+                </div>
+                <div class="settings-group">
+                    <label>Center</label>
+                    <input type="text" id="setting-header-center" placeholder="Empty = hidden">
+                </div>
+                <div class="settings-group">
+                    <label>Right</label>
+                    <input type="text" id="setting-header-right" placeholder="Empty = hidden">
+                </div>
+            </div>
+            <small style="color:#666; font-size:0.75rem; margin-top:4px; display:block;">Page number position overrides
+                the corresponding field</small>
+        </div>
+
+        <div class="settings-group">
+            <label>Footer Text</label>
+            <div class="margin-grid">
+                <div class="settings-group">
+                    <label>Left</label>
+                    <input type="text" id="setting-footer-left" placeholder="Empty = hidden">
+                </div>
+                <div class="settings-group">
+                    <label>Center</label>
+                    <input type="text" id="setting-footer-center" placeholder="Empty = hidden">
+                </div>
+                <div class="settings-group">
+                    <label>Right</label>
+                    <input type="text" id="setting-footer-right" placeholder="Empty = hidden">
+                </div>
+            </div>
+            <small style="color:#666; font-size:0.75rem; margin-top:4px; display:block;">Page number position overrides
+                the corresponding field</small>
+        </div>
+
+        <div class="settings-group">
+            <label>Content Parser</label>
+            <select id="setting-parser">
+                <option value="plaintext">Plain Text (default)</option>
+                <option value="markdown">Markdown</option>
+                <option value="custom">Custom Parser</option>
+            </select>
+            <small style="color:#666; font-size:0.75rem; margin-top:4px; display:block;">Parser scripts are loaded from
+                ./parsers/ folder</small>
+        </div>
+
+        <div class="settings-group">
+            <label>Document Stylesheet</label>
+            <select id="setting-stylesheet">
+                <option value="default">Default (General Document)</option>
+                <option value="academic">Academic Paper</option>
+                <option value="exam">Exam / Questions</option>
+                <option value="cv">CV / Resume</option>
+                <option value="minimal">Minimal</option>
+                <option value="custom">Custom Stylesheet</option>
+            </select>
+            <small style="color:#666; font-size:0.75rem; margin-top:4px; display:block;">Stylesheets define headers,
+                footers, and element styles. Loaded from ./styles/ folder</small>
+        </div>
+
+        <div class="settings-group" style="display: flex; gap: 8px;">
+            <button
+                style="flex: 1; padding: 8px; background: #333; border: 1px solid var(--border); color: var(--text-main); border-radius: 4px; cursor: pointer;"
+                id="save-settings-btn">💾 Save Settings</button>
+            <button
+                style="flex: 1; padding: 8px; background: #333; border: 1px solid var(--border); color: var(--text-main); border-radius: 4px; cursor: pointer;"
+                id="load-settings-btn">📂 Load Settings</button>
+        </div>
+
+        <button class="settings-apply" id="settings-apply">Apply Settings</button>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" data-action="new-file">📄 New File</div>
+        <div class="context-menu-item" data-action="new-folder">📁 New Folder</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" data-action="rename">✏️ Rename</div>
+        <div class="context-menu-item" data-action="history">🕐 History</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item danger" data-action="delete">🗑️ Move to Trash</div>
+    </div>
+
+    <!-- New File/Folder Modal -->
+    <div class="modal-overlay hidden" id="new-item-modal">
+        <div class="modal">
+            <h4 id="new-item-title">New File</h4>
+            <input type="text" id="new-item-name" placeholder="Enter name...">
+            <div class="modal-actions">
+                <button id="new-item-cancel">Cancel</button>
+                <button class="primary" id="new-item-create">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Selection Modal -->
+    <div class="modal-overlay hidden" id="settings-modal">
+        <div class="modal" style="min-width: 350px;">
+            <h4>📁 Load Settings</h4>
+            <div id="settings-list" style="max-height: 300px; overflow-y: auto; margin: 15px 0;">
+                <!-- Settings files will be rendered here -->
+            </div>
+            <div class="modal-actions">
+                <button id="settings-modal-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-container">
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <h3>Explorer</h3>
+                <div class="sidebar-actions">
+                    <button id="new-file-btn" title="New File">+ File</button>
+                    <button id="new-folder-btn" title="New Folder">+ Folder</button>
+                </div>
+            </div>
+            <div class="file-tree" id="file-tree">
+                <!-- Dynamic file tree will be rendered here -->
+            </div>
+
+            <!-- Trash Section -->
+            <div class="trash-section" id="trash-section">
+                <div class="trash-header" id="trash-header">
+                    <span><span class="trash-icon">🗑️</span>Trash</span>
+                    <span class="trash-count" id="trash-count">0</span>
+                    <span class="trash-toggle">▼</span>
+                </div>
+                <div class="trash-content" id="trash-content">
+                    <div class="trash-list" id="trash-list">
+                        <!-- Dynamic trash items will be rendered here -->
+                    </div>
+                    <div class="trash-empty-actions" id="trash-empty-actions" style="display: none;">
+                        <button class="danger" id="empty-trash-btn">Empty Trash</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Panel (slide-out) -->
+        <div id="history-panel">
+            <div class="history-header">
+                <h3>🕐 Version History</h3>
+                <button id="close-history-btn"
+                    style="background: transparent; border: none; color: #aaa; font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            <div class="history-list" id="history-list">
+                <!-- Dynamic history items will be rendered here -->
+            </div>
+        </div>
+
+        <div id="content-area">
+            <div id="editor-pane">
+                <textarea id="code-editor">Document Title
+
+This is a raw text editor with a paged preview panel. The preview shows how your content will appear when printed on paper.
+
+1. Purpose
+
+The goal is to provide a minimalist structure where content flow takes priority. Unlike standard web pages, this document has fixed physical dimensions defined in the CSS @page rule.
+
+2. Automatic Pagination
+
+The preview panel automatically handles page breaks, footer numbering, and header repetition. As you type more content, new pages will be created automatically.
+
+3. Features
+
+- Real-time preview updates
+- Page numbers in footer
+- Customizable headers and footers
+- Print-ready output
+
+<!-- pagebreak -->
+
+4. Usage
+
+Simply type your content in this editor panel. The preview will update automatically after you stop typing. You can use the "Print / PDF" button to save or print your document.
+
+5. Additional Content
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+This is a raw text editor with a paged preview panel. The preview shows how your content will appear when printed on paper.
+
+1. Purpose
+
+The goal is to provide a minimalist structure where content flow takes priority. Unlike standard web pages, this document has fixed physical dimensions defined in the CSS @page rule.
+
+2. Automatic Pagination
+
+The preview panel automatically handles page breaks, footer numbering, and header repetition. As you type more content, new pages will be created automatically.
+
+3. Features
+
+- Real-time preview updates
+- Page numbers in footer
+- Customizable headers and footers
+- Print-ready output
+
+4. Usage
+
+Simply type your content in this editor panel. The preview will update automatically after you stop typing. You can use the "Print / PDF" button to save or print your document.
+
+5. Additional Content
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                </textarea>
+            </div>
+
+            <iframe id="preview-frame" title="Paged Preview"></iframe>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/split.js/1.6.0/split.min.js"></script>
+
+    <script>
+        // ===========================================
+        // FILE MANAGEMENT API CLIENT
+        // ===========================================
+        const API_BASE = '/api';
+
+        const FileAPI = {
+            // Get full file tree
+            async getTree() {
+                const res = await fetch(`${API_BASE}/files`);
+                if (!res.ok) throw new Error('Failed to fetch file tree');
+                return res.json();
+            },
+
+            // Get single file with content
+            async getFile(id) {
+                const res = await fetch(`${API_BASE}/files/${id}`);
+                if (!res.ok) throw new Error('Failed to fetch file');
+                return res.json();
+            },
+
+            // Create new file or folder
+            async createFile(data) {
+                const res = await fetch(`${API_BASE}/files`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Failed to create file');
+                }
+                return res.json();
+            },
+
+            // Update file (rename or content)
+            async updateFile(id, data) {
+                const res = await fetch(`${API_BASE}/files/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Failed to update file');
+                }
+                return res.json();
+            },
+
+            // Move file to new parent
+            async moveFile(id, parentId) {
+                const res = await fetch(`${API_BASE}/files/${id}/move`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ parent_id: parentId })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || 'Failed to move file');
+                }
+                return res.json();
+            },
+
+            // Delete file or folder
+            async deleteFile(id) {
+                const res = await fetch(`${API_BASE}/files/${id}`, {
+                    method: 'DELETE'
+                });
+                if (!res.ok) throw new Error('Failed to delete file');
+            },
+
+            // Get file history
+            async getHistory(id) {
+                const res = await fetch(`${API_BASE}/files/${id}/history`);
+                if (!res.ok) throw new Error('Failed to fetch history');
+                return res.json();
+            },
+
+            // Restore from history
+            async restoreHistory(fileId, historyId) {
+                const res = await fetch(`${API_BASE}/files/${fileId}/restore/${historyId}`, {
+                    method: 'POST'
+                });
+                if (!res.ok) throw new Error('Failed to restore from history');
+                return res.json();
+            },
+
+            // Get trash items
+            async getTrash() {
+                const res = await fetch(`${API_BASE}/trash`);
+                if (!res.ok) throw new Error('Failed to fetch trash');
+                return res.json();
+            },
+
+            // Restore from trash
+            async restoreFromTrash(id) {
+                const res = await fetch(`${API_BASE}/trash/${id}/restore`, {
+                    method: 'POST'
+                });
+                if (!res.ok) throw new Error('Failed to restore from trash');
+                return res.json();
+            },
+
+            // Permanently delete from trash
+            async permanentDelete(id) {
+                const res = await fetch(`${API_BASE}/trash/${id}`, {
+                    method: 'DELETE'
+                });
+                if (!res.ok) throw new Error('Failed to permanently delete');
+            },
+
+            // Empty trash
+            async emptyTrash() {
+                const res = await fetch(`${API_BASE}/trash`, {
+                    method: 'DELETE'
+                });
+                if (!res.ok) throw new Error('Failed to empty trash');
+            }
+        };
+
+        // ===========================================
+        // FILE TREE STATE
+        // ===========================================
+        let fileTree = [];
+        let currentFile = null;  // Currently selected file
+        let expandedFolders = new Set();  // Track expanded folders
+        let contextTarget = null;  // File/folder targeted by context menu
+        let saveStatus = 'saved';  // 'saved', 'unsaved', 'saving'
+        let saveTimeout = null;
+
+        // ===========================================
+        // FILE TREE RENDERING
+        // ===========================================
+        const fileTreeContainer = document.getElementById('file-tree');
+        const contextMenu = document.getElementById('context-menu');
+
+        function renderFileTree() {
+            fileTreeContainer.innerHTML = '';
+            if (fileTree.length === 0) {
+                fileTreeContainer.innerHTML = '<div style="padding: 15px; color: #666; font-size: 0.85rem;">No files yet. Click "+ File" to create one.</div>';
+                return;
+            }
+            fileTree.forEach(node => {
+                fileTreeContainer.appendChild(renderTreeNode(node, 0));
+            });
+        }
+
+        function renderTreeNode(node, depth) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'tree-node';
+            wrapper.dataset.id = node.id;
+
+            const item = document.createElement('div');
+            item.className = `tree-item ${node.type}`;
+            item.style.paddingLeft = `${10 + depth * 16}px`;
+            item.dataset.id = node.id;
+            item.dataset.type = node.type;
+            item.dataset.name = node.name;
+
+            if (currentFile && currentFile.id === node.id) {
+                item.classList.add('selected');
+            }
+            if (expandedFolders.has(node.id)) {
+                item.classList.add('expanded');
+            }
+
+            item.innerHTML = `
+                <span class="tree-toggle"></span>
+                <span class="tree-icon"></span>
+                <span class="tree-name">${escapeHtml(node.name)}</span>
+            `;
+
+            // Click handler
+            item.addEventListener('click', (e) => handleTreeItemClick(e, node));
+
+            // Context menu handler
+            item.addEventListener('contextmenu', (e) => handleContextMenu(e, node));
+
+            // Drag and Drop handlers
+            item.draggable = true;
+            item.addEventListener('dragstart', (e) => handleDragStart(e, node));
+            item.addEventListener('dragend', (e) => handleDragEnd(e));
+            item.addEventListener('dragover', (e) => handleDragOver(e, node));
+            item.addEventListener('dragleave', (e) => handleDragLeave(e));
+            item.addEventListener('drop', (e) => handleDrop(e, node));
+
+            wrapper.appendChild(item);
+
+            // Render children for folders
+            if (node.type === 'folder' && node.children && node.children.length > 0) {
+                const children = document.createElement('div');
+                children.className = 'tree-children';
+                if (expandedFolders.has(node.id)) {
+                    children.classList.add('expanded');
+                }
+                node.children.forEach(child => {
+                    children.appendChild(renderTreeNode(child, depth + 1));
+                });
+                wrapper.appendChild(children);
+            }
+
+            return wrapper;
+        }
+
+        function handleTreeItemClick(e, node) {
+            e.stopPropagation();
+
+            const item = e.currentTarget;
+            const toggle = item.querySelector('.tree-toggle');
+
+            // If clicking on toggle for a folder, expand/collapse
+            if (node.type === 'folder' && (e.target === toggle || e.target.closest('.tree-toggle'))) {
+                if (expandedFolders.has(node.id)) {
+                    expandedFolders.delete(node.id);
+                } else {
+                    expandedFolders.add(node.id);
+                }
+                renderFileTree();
+                return;
+            }
+
+            // For folders, just toggle expand
+            if (node.type === 'folder') {
+                if (expandedFolders.has(node.id)) {
+                    expandedFolders.delete(node.id);
+                } else {
+                    expandedFolders.add(node.id);
+                }
+                renderFileTree();
+                return;
+            }
+
+            // For files, select and load content
+            selectFile(node);
+        }
+
+        async function selectFile(node) {
+            // Save current file before switching
+            if (currentFile && saveStatus === 'unsaved') {
+                await saveCurrentFile();
+            }
+
+            try {
+                const file = await FileAPI.getFile(node.id);
+                currentFile = file;
+                editor.setValue(file.content || '');
+                saveStatus = 'saved';
+                updateSaveIndicator();
+                renderFileTree();  // Update selection state
+            } catch (err) {
+                console.error('Failed to load file:', err);
+                alert('Failed to load file: ' + err.message);
+            }
+        }
+
+        // ===========================================
+        // DRAG AND DROP
+        // ===========================================
+        let draggedNode = null;  // Currently dragged node
+
+        function handleDragStart(e, node) {
+            draggedNode = node;
+            e.currentTarget.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', node.id.toString());
+        }
+
+        function handleDragEnd(e) {
+            draggedNode = null;
+            e.currentTarget.classList.remove('dragging');
+            // Clean up all drag-over classes
+            document.querySelectorAll('.drag-over, .drag-over-invalid').forEach(el => {
+                el.classList.remove('drag-over', 'drag-over-invalid');
+            });
+            fileTreeContainer.classList.remove('drag-over-root');
+        }
+
+        function handleDragOver(e, targetNode) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (!draggedNode || draggedNode.id === targetNode.id) {
+                e.dataTransfer.dropEffect = 'none';
+                return;
+            }
+
+            // Only folders can be drop targets (or we're moving to same parent level)
+            if (targetNode.type !== 'folder') {
+                e.currentTarget.classList.add('drag-over-invalid');
+                e.dataTransfer.dropEffect = 'none';
+                return;
+            }
+
+            // Check if target is a descendant of dragged (would create cycle)
+            if (isDescendant(targetNode.id, draggedNode)) {
+                e.currentTarget.classList.add('drag-over-invalid');
+                e.dataTransfer.dropEffect = 'none';
+                return;
+            }
+
+            e.currentTarget.classList.remove('drag-over-invalid');
+            e.currentTarget.classList.add('drag-over');
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over', 'drag-over-invalid');
+        }
+
+        async function handleDrop(e, targetNode) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.classList.remove('drag-over', 'drag-over-invalid');
+
+            if (!draggedNode || draggedNode.id === targetNode.id) return;
+            if (targetNode.type !== 'folder') return;
+            if (isDescendant(targetNode.id, draggedNode)) return;
+
+            try {
+                await FileAPI.moveFile(draggedNode.id, targetNode.id);
+                // Expand the target folder to show the moved item
+                expandedFolders.add(targetNode.id);
+                await refreshFileTree();
+            } catch (err) {
+                alert('Failed to move: ' + err.message);
+            }
+        }
+
+        // Check if targetId is a descendant of node
+        function isDescendant(targetId, node) {
+            if (!node.children) return false;
+            for (const child of node.children) {
+                if (child.id === targetId) return true;
+                if (isDescendant(targetId, child)) return true;
+            }
+            return false;
+        }
+
+        // Root-level drop (move to root)
+        fileTreeContainer.addEventListener('dragover', (e) => {
+            // Only handle if dropping on the container itself, not on items
+            if (e.target === fileTreeContainer || e.target.closest('.file-tree') === fileTreeContainer && !e.target.closest('.tree-item')) {
+                e.preventDefault();
+                if (draggedNode) {
+                    fileTreeContainer.classList.add('drag-over-root');
+                    e.dataTransfer.dropEffect = 'move';
+                }
+            }
+        });
+
+        fileTreeContainer.addEventListener('dragleave', (e) => {
+            if (e.target === fileTreeContainer) {
+                fileTreeContainer.classList.remove('drag-over-root');
+            }
+        });
+
+        fileTreeContainer.addEventListener('drop', async (e) => {
+            // Only handle if dropping on the container itself (root level)
+            if (e.target === fileTreeContainer || (e.target.closest('.file-tree') === fileTreeContainer && !e.target.closest('.tree-item'))) {
+                e.preventDefault();
+                fileTreeContainer.classList.remove('drag-over-root');
+
+                if (!draggedNode) return;
+
+                // Move to root (parent_id = null)
+                try {
+                    await FileAPI.moveFile(draggedNode.id, null);
+                    await refreshFileTree();
+                } catch (err) {
+                    alert('Failed to move to root: ' + err.message);
+                }
+            }
+        });
+
+        // ===========================================
+        // CONTEXT MENU
+        // ===========================================
+        function handleContextMenu(e, node) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            contextTarget = node;
+
+            // Position menu
+            contextMenu.style.left = `${e.clientX}px`;
+            contextMenu.style.top = `${e.clientY}px`;
+            contextMenu.classList.add('visible');
+        }
+
+        // Hide context menu on click elsewhere
+        document.addEventListener('click', () => {
+            contextMenu.classList.remove('visible');
+        });
+
+        // Context menu actions
+        contextMenu.addEventListener('click', async (e) => {
+            const action = e.target.closest('.context-menu-item')?.dataset.action;
+            if (!action) return;
+
+            contextMenu.classList.remove('visible');
+
+            switch (action) {
+                case 'new-file':
+                    showNewItemModal('file', contextTarget?.type === 'folder' ? contextTarget.id : contextTarget?.parent_id);
+                    break;
+                case 'new-folder':
+                    showNewItemModal('folder', contextTarget?.type === 'folder' ? contextTarget.id : contextTarget?.parent_id);
+                    break;
+                case 'rename':
+                    if (contextTarget) await startRename(contextTarget);
+                    break;
+                case 'history':
+                    if (contextTarget && contextTarget.type === 'file') {
+                        await showHistoryPanel(contextTarget);
+                    } else {
+                        alert('History is only available for files');
+                    }
+                    break;
+                case 'delete':
+                    if (contextTarget) await deleteItem(contextTarget);
+                    break;
+            }
+        });
+
+        // ===========================================
+        // FILE OPERATIONS
+        // ===========================================
+        const newItemModal = document.getElementById('new-item-modal');
+        const newItemTitle = document.getElementById('new-item-title');
+        const newItemName = document.getElementById('new-item-name');
+        const newItemCreate = document.getElementById('new-item-create');
+        const newItemCancel = document.getElementById('new-item-cancel');
+        let newItemType = 'file';
+        let newItemParentId = null;
+
+        function showNewItemModal(type, parentId) {
+            newItemType = type;
+            newItemParentId = parentId;
+            newItemTitle.textContent = type === 'file' ? 'New File' : 'New Folder';
+            newItemName.value = '';
+            newItemName.placeholder = type === 'file' ? 'filename.txt' : 'folder name';
+            newItemModal.classList.remove('hidden');
+            newItemName.focus();
+        }
+
+        newItemCancel.addEventListener('click', () => {
+            newItemModal.classList.add('hidden');
+        });
+
+        newItemName.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') newItemCreate.click();
+            if (e.key === 'Escape') newItemCancel.click();
+        });
+
+        newItemCreate.addEventListener('click', async () => {
+            const name = newItemName.value.trim();
+            if (!name) return;
+
+            try {
+                await FileAPI.createFile({
+                    name,
+                    type: newItemType,
+                    parent_id: newItemParentId,
+                    content: newItemType === 'file' ? '' : null
+                });
+                newItemModal.classList.add('hidden');
+                await refreshFileTree();
+            } catch (err) {
+                alert(err.message);
+            }
+        });
+
+        async function startRename(node) {
+            const newName = prompt('Enter new name:', node.name);
+            if (!newName || newName === node.name) return;
+
+            try {
+                await FileAPI.updateFile(node.id, { name: newName });
+                await refreshFileTree();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function deleteItem(node) {
+            const confirmed = confirm(`Delete "${node.name}"?${node.type === 'folder' ? ' This will delete all contents.' : ''}`);
+            if (!confirmed) return;
+
+            try {
+                await FileAPI.deleteFile(node.id);
+                if (currentFile && currentFile.id === node.id) {
+                    currentFile = null;
+                    editor.setValue('');
+                }
+                await refreshFileTree();
+            } catch (err) {
+                alert('Failed to delete: ' + err.message);
+            }
+        }
+
+        async function refreshFileTree() {
+            try {
+                fileTree = await FileAPI.getTree();
+                renderFileTree();
+                // Also refresh trash
+                await refreshTrash();
+            } catch (err) {
+                console.error('Failed to refresh file tree:', err);
+            }
+        }
+
+        // ===========================================
+        // HISTORY PANEL
+        // ===========================================
+        const historyPanel = document.getElementById('history-panel');
+        const historyList = document.getElementById('history-list');
+        let historyFileTarget = null;
+
+        async function showHistoryPanel(file) {
+            historyFileTarget = file;
+            historyPanel.classList.add('open');
+            historyList.innerHTML = '<div class="history-empty">Loading...</div>';
+
+            try {
+                const history = await FileAPI.getHistory(file.id);
+                renderHistoryList(history);
+            } catch (err) {
+                historyList.innerHTML = '<div class="history-empty">Failed to load history</div>';
+            }
+        }
+
+        function renderHistoryList(history) {
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="history-empty">No version history yet.<br>History is created when you save changes.</div>';
+                return;
+            }
+
+            historyList.innerHTML = history.map(h => `
+                <div class="history-item" data-id="${h.id}">
+                    <div class="history-date">${formatDate(h.saved_at)}</div>
+                    <div class="history-preview">${escapeHtml((h.content || '').substring(0, 100))}...</div>
+                </div>
+            `).join('');
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleString();
+        }
+
+        // History item click - restore
+        historyList.addEventListener('click', async (e) => {
+            const item = e.target.closest('.history-item');
+            if (!item || !historyFileTarget) return;
+
+            const historyId = parseInt(item.dataset.id);
+            const confirmed = confirm('Restore this version? Current content will be saved to history.');
+            if (!confirmed) return;
+
+            try {
+                const restored = await FileAPI.restoreHistory(historyFileTarget.id, historyId);
+                // If this is the currently open file, update editor
+                if (currentFile && currentFile.id === historyFileTarget.id) {
+                    editor.setValue(restored.content || '');
+                    saveStatus = 'saved';
+                    updateSaveIndicator();
+                }
+                alert('Version restored successfully!');
+                historyPanel.classList.remove('open');
+            } catch (err) {
+                alert('Failed to restore: ' + err.message);
+            }
+        });
+
+        // Close history panel
+        document.getElementById('close-history-btn').addEventListener('click', () => {
+            historyPanel.classList.remove('open');
+        });
+
+        // ===========================================
+        // TRASH SECTION
+        // ===========================================
+        const trashHeader = document.getElementById('trash-header');
+        const trashContent = document.getElementById('trash-content');
+        const trashList = document.getElementById('trash-list');
+        const trashCount = document.getElementById('trash-count');
+        const trashEmptyActions = document.getElementById('trash-empty-actions');
+        let trashItems = [];
+        let trashExpanded = false;
+
+        // Toggle trash section
+        trashHeader.addEventListener('click', () => {
+            trashExpanded = !trashExpanded;
+            trashContent.classList.toggle('expanded', trashExpanded);
+            trashHeader.querySelector('.trash-toggle').textContent = trashExpanded ? '▲' : '▼';
+        });
+
+        async function refreshTrash() {
+            try {
+                trashItems = await FileAPI.getTrash();
+                renderTrash();
+            } catch (err) {
+                console.error('Failed to fetch trash:', err);
+            }
+        }
+
+        function renderTrash() {
+            trashCount.textContent = trashItems.length;
+
+            if (trashItems.length === 0) {
+                trashList.innerHTML = '<div style="padding: 10px 15px; color: #666; font-size: 0.75rem;">Trash is empty</div>';
+                trashEmptyActions.style.display = 'none';
+            } else {
+                trashList.innerHTML = trashItems.map(item => `
+                    <div class="trash-item" data-id="${item.id}">
+                        <span>${item.type === 'folder' ? '📁' : '📄'}</span>
+                        <span class="trash-item-name">${escapeHtml(item.name)}</span>
+                        <div class="trash-item-actions">
+                            <button class="restore" title="Restore">↩️</button>
+                            <button class="delete" title="Delete permanently">✕</button>
+                        </div>
+                    </div>
+                `).join('');
+                trashEmptyActions.style.display = 'flex';
+            }
+        }
+
+        // Trash item actions
+        trashList.addEventListener('click', async (e) => {
+            const item = e.target.closest('.trash-item');
+            if (!item) return;
+            const id = parseInt(item.dataset.id);
+
+            if (e.target.closest('.restore')) {
+                try {
+                    await FileAPI.restoreFromTrash(id);
+                    await refreshFileTree();
+                } catch (err) {
+                    alert('Failed to restore: ' + err.message);
+                }
+            } else if (e.target.closest('.delete')) {
+                const confirmed = confirm('Permanently delete this item? This cannot be undone.');
+                if (!confirmed) return;
+                try {
+                    await FileAPI.permanentDelete(id);
+                    await refreshTrash();
+                } catch (err) {
+                    alert('Failed to delete: ' + err.message);
+                }
+            }
+        });
+
+        // Empty trash button
+        document.getElementById('empty-trash-btn').addEventListener('click', async () => {
+            const confirmed = confirm('Permanently delete all items in trash? This cannot be undone.');
+            if (!confirmed) return;
+            try {
+                await FileAPI.emptyTrash();
+                await refreshTrash();
+            } catch (err) {
+                alert('Failed to empty trash: ' + err.message);
+            }
+        });
+
+        // ===========================================
+        // SIDEBAR BUTTONS
+        // ===========================================
+        document.getElementById('new-file-btn').addEventListener('click', () => {
+            showNewItemModal('file', null);
+        });
+
+        document.getElementById('new-folder-btn').addEventListener('click', () => {
+            showNewItemModal('folder', null);
+        });
+
+        // Context menu on tree background (empty area)
+        fileTreeContainer.addEventListener('contextmenu', (e) => {
+            if (e.target === fileTreeContainer) {
+                e.preventDefault();
+                contextTarget = null;  // No target = root level
+                contextMenu.style.left = `${e.clientX}px`;
+                contextMenu.style.top = `${e.clientY}px`;
+                contextMenu.classList.add('visible');
+            }
+        });
+
+        // ===========================================
+        // AUTO-SAVE
+        // ===========================================
+        function updateSaveIndicator() {
+            // Update header to show save status
+            const toggleBtn = document.getElementById('toggle-sidebar');
+            let indicator = document.querySelector('.save-indicator');
+
+            if (!indicator) {
+                indicator = document.createElement('span');
+                indicator.className = 'save-indicator';
+                toggleBtn.parentNode.insertBefore(indicator, toggleBtn.nextSibling);
+            }
+
+            indicator.className = 'save-indicator ' + saveStatus;
+            indicator.textContent = saveStatus === 'saving' ? 'Saving...' :
+                saveStatus === 'saved' ? 'Saved' :
+                    'Unsaved';
+        }
+
+        async function saveCurrentFile() {
+            if (!currentFile || saveStatus === 'saving') return;
+
+            saveStatus = 'saving';
+            updateSaveIndicator();
+
+            try {
+                const content = editor.getValue();
+                await FileAPI.updateFile(currentFile.id, { content });
+                saveStatus = 'saved';
+            } catch (err) {
+                console.error('Failed to save:', err);
+                saveStatus = 'unsaved';
+            }
+            updateSaveIndicator();
+        }
+
+        function scheduleAutoSave() {
+            if (!currentFile) return;
+
+            saveStatus = 'unsaved';
+            updateSaveIndicator();
+
+            if (saveTimeout) clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => saveCurrentFile(), 2000);
+        }
+
+        // ===========================================
+        // INITIALIZATION
+        // ===========================================
+        async function initFileTree() {
+            try {
+                await refreshFileTree();
+            } catch (err) {
+                console.error('Failed to initialize file tree:', err);
+                fileTreeContainer.innerHTML = '<div style="padding: 15px; color: #ff6b6b;">Failed to connect to server</div>';
+            }
+        }
+
+        // Helper to escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Init on page load
+        initFileTree();
+        // --- Settings State ---
+        // Margins are always stored internally in mm
+        const pageSettings = {
+            pageSize: 'A4',
+            marginTop: 20,
+            marginBottom: 20,
+            marginLeft: 20,
+            marginRight: 20,
+            fontFamily: "'Times New Roman', Times, serif",
+            fontSize: 12,
+            lineHeight: 1.5,
+            decorationColor: '#000000',
+            pageNumberPosition: 'footer-center',
+            pageNumberStyle: 'simple',
+            firstPageHideHeader: false,
+            firstPageHideFooter: false,
+            firstPageSkipNumber: false,
+            headerLeft: 'test',
+            headerCenter: 'test',
+            headerRight: 'test',
+            footerLeft: 'test',
+            footerCenter: 'test',
+            footerRight: 'test',
+            parser: 'plaintext',
+            stylesheet: 'default'
+        };
+
+        // --- Unit Conversion Helpers ---
+        const MM_PER_INCH = 25.4;
+
+        // Check if page size uses inches (US paper sizes)
+        function usesInches(pageSize) {
+            return ['letter', 'legal', 'tabloid'].includes(pageSize);
+        }
+
+        // Convert mm to inches
+        function mmToInches(mm) {
+            return Math.round((mm / MM_PER_INCH) * 100) / 100; // Round to 2 decimal places
+        }
+
+        // Convert inches to mm
+        function inchesToMm(inches) {
+            return Math.round(inches * MM_PER_INCH);
+        }
+
+        // Get the margin unit CSS string based on page size
+        function getMarginUnit(pageSize) {
+            return usesInches(pageSize) ? 'in' : 'mm';
+        }
+
+        // --- Page Number Styles ---
+        // Returns the CSS content value for page numbers
+        function getPageNumberContent(style) {
+            switch (style) {
+                case 'simple':
+                    return 'counter(page)';
+                case 'page-n':
+                    return '"Page " counter(page)';
+                case 'page-n-of-N':
+                    return '"Page " counter(page) " of " counter(pages)';
+                case 'n-of-N':
+                    return 'counter(page) " of " counter(pages)';
+                case 'n-slash-N':
+                    return 'counter(page) " / " counter(pages)';
+                case 'dash-n-dash':
+                    return '"- " counter(page) " -"';
+                case 'brackets':
+                    return '"[" counter(page) "]"';
+                case 'parentheses':
+                    return '"(" counter(page) ")"';
+                default:
+                    return 'counter(page)';
+            }
+        }        // Map position names to CSS selectors and settings keys
+        const headerFooterPositions = {
+            'header-left': { selector: '@top-left', settingsKey: 'headerLeft', isHeader: true },
+            'header-center': { selector: '@top-center', settingsKey: 'headerCenter', isHeader: true },
+            'header-right': { selector: '@top-right', settingsKey: 'headerRight', isHeader: true },
+            'footer-left': { selector: '@bottom-left', settingsKey: 'footerLeft', isHeader: false },
+            'footer-center': { selector: '@bottom-center', settingsKey: 'footerCenter', isHeader: false },
+            'footer-right': { selector: '@bottom-right', settingsKey: 'footerRight', isHeader: false }
+        };
+
+        // Generate CSS for a single header/footer position
+        function generatePositionCSS(position, content, settings, isPageNumber = false) {
+            const posInfo = headerFooterPositions[position];
+            if (!posInfo) return '';
+
+            const borderStyle = posInfo.isHeader
+                ? `border-bottom: 1px solid ${settings.decorationColor};`
+                : `border-top: 1px solid ${settings.decorationColor};`;
+
+            // For page numbers, content is already a CSS expression
+            // For text, we need to wrap in quotes
+            const cssContent = isPageNumber ? content : `"${content.replace(/"/g, '\\"')}"`;
+
+            return `
+                ${posInfo.selector} {
+                    content: ${cssContent};
+                    font-family: ${settings.fontFamily};
+                    font-size: 9pt;
+                    color: ${settings.decorationColor};
+                    ${borderStyle}
+                }
+            `;
+        }
+
+        // Generate all header/footer CSS based on settings (for inside @page block)
+        function getHeaderFooterCSS(settings) {
+            let css = '';
+
+            // Determine which position is used for page numbers
+            const pageNumPosition = settings.pageNumberPosition;
+
+            // Generate CSS for each position
+            for (const [position, posInfo] of Object.entries(headerFooterPositions)) {
+                // If this position is used for page numbers
+                if (position === pageNumPosition && pageNumPosition !== 'none') {
+                    const pageNumContent = getPageNumberContent(settings.pageNumberStyle);
+                    css += generatePositionCSS(position, pageNumContent, settings, true);
+                }
+                // Otherwise, use the text value if not empty
+                else {
+                    const textValue = settings[posInfo.settingsKey];
+                    if (textValue && textValue.trim() !== '') {
+                        css += generatePositionCSS(position, textValue.trim(), settings, false);
+                    }
+                }
+            }
+
+            return css;
+        }
+
+        // Generate CSS for custom page counter when skipping first page
+        // Reset page counter to 0 on first page so page 2 shows "1"
+        function getSkipFirstPageCounterCSS(settings) {
+            if (!settings.firstPageSkipNumber) {
+                return '';
+            }
+
+            // Use @page:first to reset counter to 0
+            // paged.js increments counter before displaying, so:
+            // - First page: counter resets to 0, then increments to 1, but we hide it
+            // - Second page: counter is 1, increments to 2... wait that's not right
+            // 
+            // Actually, we need to reset the counter on the first PAGE element after render
+            // This CSS targets paged.js's generated structure
+            return `
+                .pagedjs_first_page {
+                    counter-reset: page 0;
+                }
+            `;
+        }        // Generate @page:first CSS for first page options (to be placed OUTSIDE @page block)
+        function getFirstPageCSS(settings) {
+            let css = '';
+            const pageNumPosition = settings.pageNumberPosition;
+
+            // Generate @page:first CSS for first page options
+            const hasFirstPageRules = settings.firstPageHideHeader || settings.firstPageHideFooter || settings.firstPageSkipNumber;
+            if (hasFirstPageRules) {
+                let firstPageContent = '';
+
+                // Hide header positions on first page
+                if (settings.firstPageHideHeader) {
+                    firstPageContent += `
+                        @top-left { content: none; border: none; }
+                        @top-center { content: none; border: none; }
+                        @top-right { content: none; border: none; }
+                    `;
+                }
+
+                // Hide footer positions on first page
+                if (settings.firstPageHideFooter) {
+                    firstPageContent += `
+                        @bottom-left { content: none; border: none; }
+                        @bottom-center { content: none; border: none; }
+                        @bottom-right { content: none; border: none; }
+                    `;
+                }
+
+                // Skip page number on first page (hide only the page number position)
+                if (settings.firstPageSkipNumber && pageNumPosition !== 'none') {
+                    const pageNumPosInfo = headerFooterPositions[pageNumPosition];
+                    if (pageNumPosInfo) {
+                        // Only add if not already hidden by header/footer hide
+                        const alreadyHidden = (pageNumPosInfo.isHeader && settings.firstPageHideHeader) ||
+                            (!pageNumPosInfo.isHeader && settings.firstPageHideFooter);
+                        if (!alreadyHidden) {
+                            firstPageContent += `
+                                ${pageNumPosInfo.selector} { content: none; border: none; }
+                            `;
+                        }
+                    }
+                }
+
+                if (firstPageContent) {
+                    css += `
+                    @page:first {
+                        ${firstPageContent}
+                    }`;
+                }
+            }
+
+            return css;
+        }
+
+        // Check if skip page number is enabled (used to modify page number content)
+        function shouldSkipFirstPageNumber(settings) {
+            return settings.firstPageSkipNumber && settings.pageNumberPosition !== 'none';
+        }
+
+        // Legacy function for backward compatibility with stylesheets
+        function getPageNumberCSS(settings) {
+            return getHeaderFooterCSS(settings);
+        }
+
+        // --- Parser Registry ---
+        // Parsers transform raw text into HTML before paged.js renders
+        // Each parser should be a function: (rawText) => htmlString
+        const parserRegistry = {
+            // Default plaintext parser - escapes HTML and preserves whitespace
+            plaintext: (text) => {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return `<div style="white-space: pre-wrap;">${div.innerHTML}</div>`;
+            },
+
+            // Built-in markdown parser
+            markdown: (text) => {
+                let html = text;
+
+                // Escape HTML first (but preserve our markdown)
+                html = html
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+
+                // Code blocks (``` ... ```) - must be processed before other rules
+                html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+                    return `<pre><code class="language-${lang}">${code.trim()}</code></pre>`;
+                });
+
+                // Inline code (`code`)
+                html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+                // Headers (# to ######)
+                html = html.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>');
+                html = html.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>');
+                html = html.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>');
+                html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+                html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+                html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+
+                // Page break (<!-- pagebreak -->)
+                html = html.replace(/&lt;!-- pagebreak --&gt;/gi, '<div class="pagebreak"></div>');
+
+                // Horizontal rule (--- or ***)
+                html = html.replace(/^([-*]){3,}\s*$/gm, '<hr>');
+
+                // Bold (**text** or __text__)
+                html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+
+                // Italic (*text* or _text_)
+                html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+                html = html.replace(/(?<!_)_([^_]+)_(?!_)/g, '<em>$1</em>');
+
+                // Strikethrough (~~text~~)
+                html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+
+                // Links [text](url)
+                html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+                // Images ![alt](url)
+                html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+
+                // Blockquotes (> text)
+                html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
+                // Merge consecutive blockquotes
+                html = html.replace(/<\/blockquote>\n<blockquote>/g, '\n');
+
+                // Unordered lists (- item or * item) - be careful not to match hr
+                html = html.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
+                // Wrap consecutive li elements in ul
+                html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
+
+                // Ordered lists (1. item)
+                html = html.replace(/^\d+\.\s+(.+)$/gm, '<oli>$1</oli>');
+                // Wrap consecutive oli elements in ol
+                html = html.replace(/(<oli>.*<\/oli>\n?)+/g, (match) => {
+                    return `<ol>${match.replace(/<\/?oli>/g, (m) => m.replace('oli', 'li'))}</ol>`;
+                });
+
+                // Paragraphs - wrap remaining text blocks
+                const blocks = html.split(/\n\n+/);
+                html = blocks.map(block => {
+                    block = block.trim();
+                    if (!block) return '';
+                    // Don't wrap if already an HTML block element
+                    if (/^<(h[1-6]|p|ul|ol|li|blockquote|pre|hr|div|table)/i.test(block)) {
+                        return block;
+                    }
+                    // Wrap plain text in paragraph, convert single newlines to <br>
+                    return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+                }).join('\n');
+
+                return html;
+            },
+
+            // Placeholder for custom parser (can be loaded dynamically)
+            custom: null
+        };
+
+        // Track loaded parser scripts (for dynamically loaded parsers)
+        const loadedParsers = new Set(['plaintext', 'markdown']);
+
+        // --- Stylesheet Registry ---
+        // Stylesheets define CSS for the preview including @page rules, headers, footers, and content styles
+        // Each stylesheet is an object with: { pageStyles, contentStyles, name, description }
+        const stylesheetRegistry = {
+            // Default general document stylesheet
+            'default': {
+                name: 'Default',
+                description: 'General purpose document style',
+                getPageStyles: (settings) => `
+                    @page {
+                        size: ${settings.pageSize};
+                        margin-top: ${settings.marginTop}mm;
+                        margin-bottom: ${settings.marginBottom}mm;
+                        margin-left: ${settings.marginLeft}mm;
+                        margin-right: ${settings.marginRight}mm;
+
+                        ${getHeaderFooterCSS(settings)}
+                    }
+                    ${getFirstPageCSS(settings)}
+                    ${getSkipFirstPageCounterCSS(settings)}
+                `,
+                getContentStyles: (settings) => `
+                    #content h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; page-break-after: avoid; }
+                    #content h2 { font-size: 1.5em; font-weight: bold; margin: 0.75em 0; page-break-after: avoid; border-bottom: 1px solid ${settings.decorationColor}; padding-bottom: 0.3em; }
+                    #content h3 { font-size: 1.17em; font-weight: bold; margin: 0.83em 0; page-break-after: avoid; }
+                    #content p { margin: 1em 0; text-align: justify; }
+                    #content ul, #content ol { margin: 1em 0; padding-left: 2em; }
+                    #content li { margin: 0.5em 0; }
+                    #content blockquote { margin: 1em 0; padding: 0.5em 1em; border-left: 3px solid ${settings.decorationColor}; background: #f9f9f9; }
+                    #content code { font-family: 'Courier New', monospace; background: #f4f4f4; padding: 0.1em 0.3em; border-radius: 3px; }
+                    #content pre { font-family: 'Courier New', monospace; background: #f4f4f4; padding: 1em; overflow-x: auto; border-radius: 4px; margin: 1em 0; }
+                    #content pre code { background: none; padding: 0; }
+                    #content table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+                    #content th, #content td { border: 1px solid ${settings.decorationColor}; padding: 0.5em; text-align: left; }
+                    #content th { background: #f4f4f4; font-weight: bold; }
+                    #content hr { border: none; border-top: 1px solid ${settings.decorationColor}; margin: 2em 0; }
+                    #content a { color: ${settings.decorationColor}; text-decoration: underline; }
+                    #content img { max-width: 100%; height: auto; }
+                `
+            },
+
+            // Academic paper stylesheet
+            'academic': {
+                name: 'Academic Paper',
+                description: 'Formal academic paper with abstract support',
+                getPageStyles: (settings) => {
+                    // Academic always hides header on first page, combine with user settings
+                    const userFirstPageCSS = getFirstPageCSS(settings);
+                    // If user hasn't selected hide header, we add our own first page rule
+                    const academicFirstPage = !settings.firstPageHideHeader ? `
+                    @page:first {
+                        @top-left { content: none; }
+                        @top-center { content: none; }
+                        @top-right { content: none; }
+                    }` : '';
+                    return `
+                    @page {
+                        size: ${settings.pageSize};
+                        margin-top: ${settings.marginTop}mm;
+                        margin-bottom: ${settings.marginBottom}mm;
+                        margin-left: ${settings.marginLeft}mm;
+                        margin-right: ${settings.marginRight}mm;
+
+                        ${getHeaderFooterCSS(settings)}
+                    }
+                    ${userFirstPageCSS}
+                    ${academicFirstPage}
+                    ${getSkipFirstPageCounterCSS(settings)}
+                `;
+                },
+                getContentStyles: (settings) => `
+                    #content { text-align: justify; }
+                    #content h1 { font-size: 1.5em; font-weight: bold; text-align: center; margin: 1em 0; }
+                    #content h2 { font-size: 1.2em; font-weight: bold; margin: 1.5em 0 0.5em 0; }
+                    #content h3 { font-size: 1.1em; font-weight: bold; font-style: italic; margin: 1em 0 0.5em 0; }
+                    #content p { margin: 0 0 1em 0; text-indent: 2em; }
+                    #content p:first-of-type { text-indent: 0; }
+                    #content .abstract { font-size: 0.9em; margin: 2em 3em; font-style: italic; text-indent: 0 !important; }
+                    #content .abstract::before { content: "Abstract: "; font-weight: bold; font-style: normal; }
+                    #content .author { text-align: center; margin: 0.5em 0; }
+                    #content .keywords { font-size: 0.9em; margin: 1em 0; }
+                    #content .keywords::before { content: "Keywords: "; font-weight: bold; }
+                    #content blockquote { margin: 1em 2em; padding: 0; border-left: none; font-size: 0.95em; }
+                    #content figure { text-align: center; margin: 1.5em 0; page-break-inside: avoid; }
+                    #content figcaption { font-size: 0.9em; margin-top: 0.5em; color: #333; }
+                    #content .references { font-size: 0.9em; }
+                    #content .references p { text-indent: -2em; padding-left: 2em; margin: 0.3em 0; }
+                `
+            },
+
+            // Exam / Questions stylesheet
+            'exam': {
+                name: 'Exam / Questions',
+                description: 'Exam paper with question numbering and answer spaces',
+                getPageStyles: (settings) => `
+                    @page {
+                        size: ${settings.pageSize};
+                        margin-top: ${settings.marginTop}mm;
+                        margin-bottom: ${settings.marginBottom}mm;
+                        margin-left: ${settings.marginLeft}mm;
+                        margin-right: ${settings.marginRight}mm;
+
+                        ${getHeaderFooterCSS(settings)}
+                    }
+                    ${getFirstPageCSS(settings)}
+                    ${getSkipFirstPageCounterCSS(settings)}
+                `,
+                getContentStyles: (settings) => `
+                    #content h1 { font-size: 1.5em; font-weight: bold; text-align: center; margin: 0.5em 0; border-bottom: 2px solid ${settings.decorationColor}; padding-bottom: 0.5em; }
+                    #content .exam-info { text-align: center; margin: 1em 0; padding: 1em; background: #f5f5f5; border: 1px solid ${settings.decorationColor}; }
+                    #content .exam-date { font-weight: bold; }
+                    #content .instructions { margin: 1em 0; padding: 1em; background: #fff8e1; border-left: 4px solid ${settings.decorationColor}; }
+                    #content .instructions::before { content: "Instructions: "; font-weight: bold; display: block; margin-bottom: 0.5em; }
+                    
+                    /* Question styling */
+                    #content .question { margin: 1.5em 0; page-break-inside: avoid; }
+                    #content .question-number { font-weight: bold; color: ${settings.decorationColor}; }
+                    #content .question-text { margin: 0.5em 0; }
+                    #content .question-points { float: right; font-weight: bold; color: ${settings.decorationColor}; font-size: 0.9em; }
+                    
+                    /* Multiple choice */
+                    #content .choices { list-style: none; padding-left: 1.5em; margin: 0.5em 0; }
+                    #content .choices li { margin: 0.3em 0; }
+                    #content .choices li::before { content: "○ "; color: ${settings.decorationColor}; }
+                    
+                    /* Answer space */
+                    #content .answer-space { border: 1px solid ${settings.decorationColor}; min-height: 3em; margin: 1em 0; background: #fafafa; }
+                    #content .answer-space.large { min-height: 8em; }
+                    #content .answer-lines { border-bottom: 1px solid #ccc; height: 2em; margin: 0.5em 0; }
+                    
+                    /* Section breaks */
+                    #content .section { margin-top: 2em; page-break-before: auto; }
+                    #content .section-title { font-size: 1.2em; font-weight: bold; border-bottom: 1px solid ${settings.decorationColor}; padding-bottom: 0.3em; margin-bottom: 1em; }
+                    
+                    #content h2 { font-size: 1.2em; font-weight: bold; margin: 1.5em 0 0.5em 0; color: ${settings.decorationColor}; }
+                    #content p { margin: 0.5em 0; }
+                `
+            },
+
+            // CV / Resume stylesheet
+            'cv': {
+                name: 'CV / Resume',
+                description: 'Professional curriculum vitae layout',
+                getPageStyles: (settings) => {
+                    // CV always hides header and footer on first page, combine with user settings
+                    const userFirstPageCSS = getFirstPageCSS(settings);
+                    // If user hasn't selected both hide options, add remaining rules
+                    let cvFirstPage = '';
+                    if (!settings.firstPageHideHeader || !settings.firstPageHideFooter) {
+                        let cvFirstContent = '';
+                        if (!settings.firstPageHideHeader) {
+                            cvFirstContent += `
+                                @top-left { content: none; }
+                                @top-center { content: none; }
+                                @top-right { content: none; }
+                            `;
+                        }
+                        if (!settings.firstPageHideFooter) {
+                            cvFirstContent += `
+                                @bottom-left { content: none; }
+                                @bottom-center { content: none; }
+                                @bottom-right { content: none; }
+                            `;
+                        }
+                        if (cvFirstContent) {
+                            cvFirstPage = `
+                            @page:first {
+                                ${cvFirstContent}
+                            }`;
+                        }
+                    }
+                    return `
+                    @page {
+                        size: ${settings.pageSize};
+                        margin-top: ${settings.marginTop}mm;
+                        margin-bottom: ${settings.marginBottom}mm;
+                        margin-left: ${settings.marginLeft}mm;
+                        margin-right: ${settings.marginRight}mm;
+
+                        ${getHeaderFooterCSS(settings)}
+                    }
+                    ${userFirstPageCSS}
+                    ${cvFirstPage}
+                    ${getSkipFirstPageCounterCSS(settings)}
+                `;
+                },
+                getContentStyles: (settings) => `
+                    #content { font-size: 10pt; }
+                    
+                    /* Header / Name */
+                    #content h1 { font-size: 2em; font-weight: bold; margin: 0 0 0.2em 0; color: ${settings.decorationColor}; border: none; }
+                    #content .cv-subtitle { font-size: 1.1em; color: #666; margin-bottom: 0.5em; }
+                    #content .cv-contact { margin: 0.5em 0 1.5em 0; padding-bottom: 1em; border-bottom: 2px solid ${settings.decorationColor}; font-size: 0.9em; color: #444; }
+                    #content .cv-contact a { color: ${settings.decorationColor}; }
+                    
+                    /* Section headers */
+                    #content h2 { font-size: 1.1em; font-weight: bold; text-transform: uppercase; color: ${settings.decorationColor}; border-bottom: 1px solid ${settings.decorationColor}; padding-bottom: 0.2em; margin: 1.5em 0 0.8em 0; letter-spacing: 0.05em; }
+                    
+                    /* Experience entries */
+                    #content .cv-entry { margin: 1em 0; page-break-inside: avoid; }
+                    #content .cv-entry-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.2em; }
+                    #content .cv-entry-title { font-weight: bold; }
+                    #content .cv-entry-date { color: #666; font-size: 0.9em; }
+                    #content .cv-entry-org { font-style: italic; color: #444; }
+                    #content .cv-entry-location { color: #666; font-size: 0.9em; }
+                    #content .cv-entry-description { margin: 0.3em 0 0 0; }
+                    #content .cv-entry ul { margin: 0.3em 0; padding-left: 1.5em; }
+                    #content .cv-entry li { margin: 0.2em 0; }
+                    
+                    /* Skills */
+                    #content .cv-skills { display: flex; flex-wrap: wrap; gap: 0.5em; }
+                    #content .cv-skill { background: #f0f0f0; padding: 0.2em 0.6em; border-radius: 3px; font-size: 0.9em; }
+                    #content .cv-skill.highlight { background: ${settings.decorationColor}; color: white; }
+                    
+                    /* Education */
+                    #content .cv-education { margin: 0.8em 0; }
+                    #content .cv-degree { font-weight: bold; }
+                    #content .cv-school { font-style: italic; }
+                    
+                    /* General */
+                    #content p { margin: 0.3em 0; text-align: left; }
+                    #content ul { margin: 0.3em 0; }
+                    #content a { color: ${settings.decorationColor}; }
+                `
+            },
+
+            // Minimal stylesheet
+            'minimal': {
+                name: 'Minimal',
+                description: 'Clean, minimal styling with no header/footer',
+                getPageStyles: (settings) => `
+                    @page {
+                        size: ${settings.pageSize};
+                        margin-top: ${settings.marginTop}mm;
+                        margin-bottom: ${settings.marginBottom}mm;
+                        margin-left: ${settings.marginLeft}mm;
+                        margin-right: ${settings.marginRight}mm;
+
+                        ${getHeaderFooterCSS(settings)}
+                    }
+                    ${getFirstPageCSS(settings)}
+                    ${getSkipFirstPageCounterCSS(settings)}
+                `,
+                getContentStyles: (settings) => `
+                    #content h1 { font-size: 1.8em; font-weight: normal; margin: 0 0 1em 0; }
+                    #content h2 { font-size: 1.3em; font-weight: normal; margin: 1.5em 0 0.5em 0; }
+                    #content h3 { font-size: 1.1em; font-weight: normal; margin: 1em 0 0.5em 0; }
+                    #content p { margin: 1em 0; text-align: left; }
+                    #content ul, #content ol { margin: 1em 0; padding-left: 1.5em; }
+                    #content li { margin: 0.3em 0; }
+                    #content blockquote { margin: 1em 0; padding: 0.5em 1em; border-left: 2px solid #ddd; color: #666; }
+                    #content code { font-family: monospace; background: #f5f5f5; padding: 0.1em 0.3em; }
+                    #content pre { background: #f5f5f5; padding: 1em; overflow-x: auto; margin: 1em 0; }
+                    #content hr { border: none; border-top: 1px solid #eee; margin: 2em 0; }
+                    #content a { color: #333; }
+                `
+            },
+
+            // Placeholder for custom stylesheet
+            'custom': null
+        };
+
+        // Track loaded stylesheets
+        const loadedStylesheets = new Set(['default', 'academic', 'exam', 'cv', 'minimal']);
+
+        // Function to register a stylesheet (used by external stylesheet scripts)
+        function registerStylesheet(name, stylesheet) {
+            stylesheetRegistry[name] = stylesheet;
+            loadedStylesheets.add(name);
+            console.log(`Stylesheet '${name}' registered successfully`);
+        }
+
+        // Function to load a stylesheet script dynamically
+        async function loadStylesheet(stylesheetName) {
+            if (loadedStylesheets.has(stylesheetName) && stylesheetRegistry[stylesheetName]) {
+                return true;
+            }
+
+            const scriptPath = `./styles/${stylesheetName}-style.js`;
+            console.log(`Loading stylesheet from: ${scriptPath}`);
+
+            try {
+                const response = await fetch(scriptPath);
+                if (!response.ok) {
+                    console.warn(`Stylesheet script not found: ${scriptPath}`);
+                    return false;
+                }
+
+                const scriptContent = await response.text();
+                const scriptFn = new Function('registerStylesheet', scriptContent);
+                scriptFn(registerStylesheet);
+
+                return stylesheetRegistry[stylesheetName] != null;
+            } catch (error) {
+                console.error(`Failed to load stylesheet '${stylesheetName}':`, error);
+                return false;
+            }
+        }
+
+        // Function to get stylesheet CSS
+        function getStylesheetCSS(stylesheetName, settings) {
+            const stylesheet = stylesheetRegistry[stylesheetName];
+            if (stylesheet && typeof stylesheet.getPageStyles === 'function') {
+                try {
+                    const pageStyles = stylesheet.getPageStyles(settings);
+                    const contentStyles = stylesheet.getContentStyles(settings);
+                    return { pageStyles, contentStyles };
+                } catch (error) {
+                    console.error(`Stylesheet '${stylesheetName}' error:`, error);
+                }
+            }
+            // Fallback to default
+            console.warn(`Stylesheet '${stylesheetName}' not available, using default`);
+            return {
+                pageStyles: stylesheetRegistry['default'].getPageStyles(settings),
+                contentStyles: stylesheetRegistry['default'].getContentStyles(settings)
+            };
+        }
+
+        // Function to register a parser (used by external parser scripts)
+        function registerParser(name, parserFn) {
+            parserRegistry[name] = parserFn;
+            loadedParsers.add(name);
+            console.log(`Parser '${name}' registered successfully`);
+        }
+
+        // Function to load a parser script dynamically
+        async function loadParser(parserName) {
+            // Already loaded?
+            if (loadedParsers.has(parserName) && parserRegistry[parserName]) {
+                return true;
+            }
+
+            const scriptPath = `./parsers/${parserName}-parser.js`;
+            console.log(`Loading parser from: ${scriptPath}`);
+
+            try {
+                const response = await fetch(scriptPath);
+                if (!response.ok) {
+                    console.warn(`Parser script not found: ${scriptPath}`);
+                    return false;
+                }
+
+                const scriptContent = await response.text();
+
+                // Execute the script which should call registerParser
+                const scriptFn = new Function('registerParser', scriptContent);
+                scriptFn(registerParser);
+
+                return parserRegistry[parserName] != null;
+            } catch (error) {
+                console.error(`Failed to load parser '${parserName}':`, error);
+                return false;
+            }
+        }
+
+        // Function to parse content using the selected parser
+        function parseContent(rawText, parserName) {
+            const parser = parserRegistry[parserName];
+            if (parser && typeof parser === 'function') {
+                try {
+                    return parser(rawText);
+                } catch (error) {
+                    console.error(`Parser '${parserName}' error:`, error);
+                    // Fallback to plaintext on error
+                    return parserRegistry.plaintext(rawText);
+                }
+            }
+            // Fallback to plaintext if parser not available
+            console.warn(`Parser '${parserName}' not available, using plaintext`);
+            return parserRegistry.plaintext(rawText);
+        }
+
+        // --- Paged.js Template ---
+        // This template will be used to render the preview
+        const pagedTemplate = (content, settings, stylesheetCSS) => `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paged Preview</title>
+    <style>
+        /* Base styles */
+        body {
+            font-family: ${settings.fontFamily};
+            font-size: ${settings.fontSize}pt;
+            line-height: ${settings.lineHeight};
+            color: #000;
+            margin: 0;
+        }
+
+        /* Page styles from stylesheet */
+        ${stylesheetCSS.pageStyles}
+
+        /* Screen preview styling */
+        @media screen {
+            body {
+                background-color: #525659;
+                min-height: 100vh;
+            }
+            .pagedjs_pages {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: flex-start;
+                width: 100%;
+                min-width: fit-content;
+                padding: 20px 0;
+                margin: 0 auto;
+            }
+            .pagedjs_page {
+                background-color: white !important;
+                margin-bottom: 20px !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+            }
+            .pagedjs_sheet {
+                background-color: white !important;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+        }
+
+        /* Content base styling */
+        #content {
+            font-family: ${settings.fontFamily};
+        }
+
+        /* Common text styles */
+        #content strong, #content b { font-weight: bold; }
+        #content em, #content i { font-style: italic; }
+        #content img { max-width: 100%; height: auto; }
+
+        /* Page break class for paged.js */
+        .pagebreak {
+            break-before: page;
+        }
+
+        /* Content styles from stylesheet */
+        ${stylesheetCSS.contentStyles}
+    </style>
+</head>
+<body>
+    <div id="content">${content}</div>
+    <script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></` + `script>
+    <script>
+        if (window.PagedPolyfill) {
+            window.PagedPolyfill.on('rendered', function () {
+                // Adjust page numbers if skipping first page
+                const skipFirstPage = ${settings.firstPageSkipNumber};
+                const pageNumPosition = '${settings.pageNumberPosition}';
+                const pageNumStyle = '${settings.pageNumberStyle}';
+                
+                if (skipFirstPage && pageNumPosition !== 'none') {
+                    // Map position names to paged.js CSS class names
+                    const positionToClass = {
+                        'header-left': 'pagedjs_margin-top-left',
+                        'header-center': 'pagedjs_margin-top-center',
+                        'header-right': 'pagedjs_margin-top-right',
+                        'footer-left': 'pagedjs_margin-bottom-left',
+                        'footer-center': 'pagedjs_margin-bottom-center',
+                        'footer-right': 'pagedjs_margin-bottom-right'
+                    };
+                    
+                    const targetClass = positionToClass[pageNumPosition];
+                    const allPages = document.querySelectorAll('.pagedjs_page');
+                    const totalPagesAdjusted = allPages.length - 1;
+                    
+                    // Function to format page number based on style
+                    function formatPageNum(pageNum, totalPages, style) {
+                        switch(style) {
+                            case 'simple': return String(pageNum);
+                            case 'page-n': return 'Page ' + pageNum;
+                            case 'page-n-of-N': return 'Page ' + pageNum + ' of ' + totalPages;
+                            case 'n-of-N': return pageNum + ' of ' + totalPages;
+                            case 'n-slash-N': return pageNum + ' / ' + totalPages;
+                            case 'dash-n-dash': return '- ' + pageNum + ' -';
+                            case 'brackets': return '[' + pageNum + ']';
+                            case 'parentheses': return '(' + pageNum + ')';
+                            default: return String(pageNum);
+                        }
+                    }
+                    
+                    // Add CSS to hide the original CSS-generated page numbers
+                    const hideStyle = document.createElement('style');
+                    hideStyle.textContent = '.' + targetClass + ' .pagedjs_margin-content::after { content: none !important; }';
+                    document.head.appendChild(hideStyle);
+                    
+                    // Process each page
+                    allPages.forEach((page, index) => {
+                        const marginBox = page.querySelector('.' + targetClass + ' .pagedjs_margin-content');
+                        if (!marginBox) return;
+                        
+                        if (index === 0) {
+                            // First page - ensure it's empty (no page number)
+                            marginBox.textContent = '';
+                        } else {
+                            // Subsequent pages - insert adjusted page number
+                            const adjustedPageNum = index;
+                            const formattedNum = formatPageNum(adjustedPageNum, totalPagesAdjusted, pageNumStyle);
+                            marginBox.textContent = formattedNum;
+                        }
+                    });
+                }
+                
+                if (window.matchMedia('screen').matches) {
+                    const style = document.createElement('style');
+                    style.textContent = \`
+                        @media screen {
+                            html, body {
+                                width: 100%;
+                                overflow-x: auto;
+                            }
+                            .pagedjs_pages {
+                                display: flex !important;
+                                flex-direction: column !important;
+                                align-items: center !important;
+                                width: 100% !important;
+                                padding: 20px 0 !important;
+                            }
+                            .pagedjs_page {
+                                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+                                outline: 1px solid rgba(0, 0, 0, 0.15) !important;
+                                margin-bottom: 20px !important;
+                                margin-left: auto !important;
+                                margin-right: auto !important;
+                            }
+                            .pagedjs_sheet {
+                                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+                                outline: 1px solid rgba(0, 0, 0, 0.15) !important;
+                            }
+                        }
+                    \`;
+                    document.head.appendChild(style);
+                    // Notify parent that rendering is complete
+                    window.parent.postMessage({ type: 'paged-rendered' }, '*');
+                }
+            });
+        }
+    </` + `script>
+</body>
+</html>`;
+
+        // Helper function to escape HTML (used by plaintext parser)
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Generate the paged template with parsed content and stylesheet
+        function generatePreviewHtml(rawContent, settings) {
+            // Parse the content using the selected parser
+            const parsedContent = parseContent(rawContent, settings.parser);
+            // Get the stylesheet CSS
+            const stylesheetCSS = getStylesheetCSS(settings.stylesheet, settings);
+            return pagedTemplate(parsedContent, settings, stylesheetCSS);
+        }
+
+        // --- 1. Editor Setup ---
+        const editor = CodeMirror.fromTextArea(document.getElementById("code-editor"), {
+            mode: "text/plain",
+            theme: "dracula",
+            lineNumbers: true,
+            lineWrapping: true,
+            autofocus: false,
+            tabSize: 2,
+            indentUnit: 2,
+            indentWithTabs: false,
+        });
+
+        // --- 2. Split Logic ---
+        let splitInstance;
+        const editorPane = document.getElementById('editor-pane');
+        const previewFrame = document.getElementById('preview-frame');
+        const viewBtns = document.querySelectorAll('.view-btn');
+
+        function cleanStyles() {
+            editorPane.removeAttribute('style');
+            previewFrame.removeAttribute('style');
+            document.querySelectorAll('.gutter').forEach(el => el.remove());
+        }
+
+        function initSplit() {
+            if (splitInstance) splitInstance.destroy();
+            splitInstance = Split(['#editor-pane', '#preview-frame'], {
+                sizes: [50, 50],
+                minSize: 100,
+                gutterSize: 10,
+                cursor: 'col-resize',
+                onDragStart: function () {
+                    previewFrame.classList.add('pointer-events-none');
+                },
+                onDragEnd: function () {
+                    previewFrame.classList.remove('pointer-events-none');
+                    editor.refresh();
+                }
+            });
+        }
+
+        function setViewMode(mode) {
+            viewBtns.forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+
+            if (splitInstance) { splitInstance.destroy(); splitInstance = null; }
+            cleanStyles();
+
+            editorPane.classList.remove('hidden');
+            previewFrame.classList.remove('hidden');
+
+            if (mode === 'editor') {
+                previewFrame.classList.add('hidden');
+                editorPane.style.width = "100%"; editorPane.style.flex = "none";
+            } else if (mode === 'preview') {
+                editorPane.classList.add('hidden');
+                previewFrame.style.width = "100%"; previewFrame.style.flex = "none";
+            } else {
+                initSplit();
+            }
+            setTimeout(() => editor.refresh(), 50);
+        }
+
+        viewBtns.forEach(btn => btn.addEventListener('click', () => setViewMode(btn.dataset.mode)));
+        initSplit();
+
+        // --- 3. Sidebar Toggle ---
+        document.getElementById('toggle-sidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            setTimeout(() => editor.refresh(), 310);
+        });
+
+        // --- 4. Preview Rendering ---
+        const loader = document.getElementById('render-loader');
+        let savedScrollPosition = 0;
+
+        async function updatePreview() {
+            const content = editor.getValue();
+            loader.style.display = 'block';
+
+            // Save current scroll position before refresh
+            try {
+                const iframeDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                savedScrollPosition = iframeDoc.documentElement.scrollTop || iframeDoc.body.scrollTop || 0;
+            } catch (e) {
+                savedScrollPosition = 0;
+            }
+
+            // Ensure the selected parser is loaded before rendering
+            if (pageSettings.parser !== 'plaintext') {
+                await loadParser(pageSettings.parser);
+            }
+
+            // Ensure the selected stylesheet is loaded before rendering
+            if (!loadedStylesheets.has(pageSettings.stylesheet)) {
+                await loadStylesheet(pageSettings.stylesheet);
+            }
+
+            // Use srcdoc for clean iframe updates with parsed content and current settings
+            previewFrame.srcdoc = generatePreviewHtml(content, pageSettings);
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(async () => {
+                    try {
+                        await func.apply(this, args);
+                    } catch (e) {
+                        console.error('Debounced function error:', e);
+                    }
+                }, wait);
+            };
+        }
+
+        // Listen for render complete message from iframe
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'paged-rendered') {
+                loader.style.display = 'none';
+                // Restore scroll position after rendering
+                try {
+                    const iframeDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                    iframeDoc.documentElement.scrollTop = savedScrollPosition;
+                    iframeDoc.body.scrollTop = savedScrollPosition;
+                } catch (e) {
+                    console.warn('Could not restore scroll position:', e);
+                }
+            }
+        });
+
+        // Hide loader after timeout as fallback
+        previewFrame.addEventListener('load', () => {
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 2000);
+        });
+
+        // Initial load and debounced updates
+        updatePreview();
+        editor.on('change', debounce(updatePreview, 800));
+
+        // Auto-save on change (separate debounce for saving)
+        editor.on('change', scheduleAutoSave);
+
+        // --- 5. Print Functionality ---
+        document.getElementById('print-btn').addEventListener('click', () => {
+            previewFrame.contentWindow.print();
+        });
+
+        // --- 6. Settings Panel ---
+        const settingsPanel = document.getElementById('settings-panel');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsClose = document.getElementById('settings-close');
+        const settingsApply = document.getElementById('settings-apply');
+
+        // Settings form elements
+        const settingPageSize = document.getElementById('setting-page-size');
+        const settingMarginTop = document.getElementById('setting-margin-top');
+        const settingMarginBottom = document.getElementById('setting-margin-bottom');
+        const settingMarginLeft = document.getElementById('setting-margin-left');
+        const settingMarginRight = document.getElementById('setting-margin-right');
+        const labelMarginTop = document.getElementById('label-margin-top');
+        const labelMarginBottom = document.getElementById('label-margin-bottom');
+        const labelMarginLeft = document.getElementById('label-margin-left');
+        const labelMarginRight = document.getElementById('label-margin-right');
+        const settingFontFamily = document.getElementById('setting-font-family');
+        const settingFontSize = document.getElementById('setting-font-size');
+        const settingLineHeight = document.getElementById('setting-line-height');
+        const settingDecorationColor = document.getElementById('setting-decoration-color');
+        const settingPageNumberPosition = document.getElementById('setting-page-number-position');
+        const settingPageNumberStyle = document.getElementById('setting-page-number-style');
+        const settingFirstPageHideHeader = document.getElementById('setting-first-page-hide-header');
+        const settingFirstPageHideFooter = document.getElementById('setting-first-page-hide-footer');
+        const settingFirstPageSkipNumber = document.getElementById('setting-first-page-skip-number');
+        const settingHeaderLeft = document.getElementById('setting-header-left');
+        const settingHeaderCenter = document.getElementById('setting-header-center');
+        const settingHeaderRight = document.getElementById('setting-header-right');
+        const settingFooterLeft = document.getElementById('setting-footer-left');
+        const settingFooterCenter = document.getElementById('setting-footer-center');
+        const settingFooterRight = document.getElementById('setting-footer-right');
+        const settingParser = document.getElementById('setting-parser');
+        const settingStylesheet = document.getElementById('setting-stylesheet');
+
+        // Update margin labels and convert values when page size changes
+        function updateMarginUnits(newPageSize, oldPageSize) {
+            const newUnit = usesInches(newPageSize) ? 'in' : 'mm';
+            const oldUnit = usesInches(oldPageSize) ? 'in' : 'mm';
+
+            // Update labels
+            labelMarginTop.textContent = `Top (${newUnit})`;
+            labelMarginBottom.textContent = `Bottom (${newUnit})`;
+            labelMarginLeft.textContent = `Left (${newUnit})`;
+            labelMarginRight.textContent = `Right (${newUnit})`;
+
+            // Update input step
+            const step = newUnit === 'in' ? '0.1' : '1';
+            settingMarginTop.step = step;
+            settingMarginBottom.step = step;
+            settingMarginLeft.step = step;
+            settingMarginRight.step = step;
+
+            // Convert displayed values if unit changed
+            if (newUnit !== oldUnit) {
+                if (newUnit === 'in') {
+                    // Converting from mm to inches
+                    settingMarginTop.value = mmToInches(parseFloat(settingMarginTop.value) || 0);
+                    settingMarginBottom.value = mmToInches(parseFloat(settingMarginBottom.value) || 0);
+                    settingMarginLeft.value = mmToInches(parseFloat(settingMarginLeft.value) || 0);
+                    settingMarginRight.value = mmToInches(parseFloat(settingMarginRight.value) || 0);
+                } else {
+                    // Converting from inches to mm
+                    settingMarginTop.value = inchesToMm(parseFloat(settingMarginTop.value) || 0);
+                    settingMarginBottom.value = inchesToMm(parseFloat(settingMarginBottom.value) || 0);
+                    settingMarginLeft.value = inchesToMm(parseFloat(settingMarginLeft.value) || 0);
+                    settingMarginRight.value = inchesToMm(parseFloat(settingMarginRight.value) || 0);
+                }
+            }
+        }
+
+        // Listen for page size changes
+        let currentDisplayedPageSize = pageSettings.pageSize;
+        settingPageSize.addEventListener('change', () => {
+            const newPageSize = settingPageSize.value;
+            updateMarginUnits(newPageSize, currentDisplayedPageSize);
+            currentDisplayedPageSize = newPageSize;
+        });
+
+        // Toggle settings panel
+        settingsBtn.addEventListener('click', () => {
+            settingsPanel.classList.toggle('open');
+            settingsBtn.classList.toggle('active');
+        });
+
+        settingsClose.addEventListener('click', () => {
+            settingsPanel.classList.remove('open');
+            settingsBtn.classList.remove('active');
+        });
+
+        // Apply settings
+        settingsApply.addEventListener('click', () => {
+            // Update settings object
+            pageSettings.pageSize = settingPageSize.value;
+
+            // Read margin values (convert to mm if displayed in inches)
+            if (usesInches(settingPageSize.value)) {
+                pageSettings.marginTop = inchesToMm(parseFloat(settingMarginTop.value) || 0);
+                pageSettings.marginBottom = inchesToMm(parseFloat(settingMarginBottom.value) || 0);
+                pageSettings.marginLeft = inchesToMm(parseFloat(settingMarginLeft.value) || 0);
+                pageSettings.marginRight = inchesToMm(parseFloat(settingMarginRight.value) || 0);
+            } else {
+                pageSettings.marginTop = parseInt(settingMarginTop.value) || 20;
+                pageSettings.marginBottom = parseInt(settingMarginBottom.value) || 20;
+                pageSettings.marginLeft = parseInt(settingMarginLeft.value) || 20;
+                pageSettings.marginRight = parseInt(settingMarginRight.value) || 20;
+            }
+            pageSettings.fontFamily = settingFontFamily.value;
+            pageSettings.fontSize = parseInt(settingFontSize.value) || 12;
+            pageSettings.lineHeight = parseFloat(settingLineHeight.value) || 1.5;
+            pageSettings.decorationColor = settingDecorationColor.value;
+            pageSettings.pageNumberPosition = settingPageNumberPosition.value;
+            pageSettings.pageNumberStyle = settingPageNumberStyle.value;
+            pageSettings.firstPageHideHeader = settingFirstPageHideHeader.checked;
+            pageSettings.firstPageHideFooter = settingFirstPageHideFooter.checked;
+            pageSettings.firstPageSkipNumber = settingFirstPageSkipNumber.checked;
+            pageSettings.headerLeft = settingHeaderLeft.value;
+            pageSettings.headerCenter = settingHeaderCenter.value;
+            pageSettings.headerRight = settingHeaderRight.value;
+            pageSettings.footerLeft = settingFooterLeft.value;
+            pageSettings.footerCenter = settingFooterCenter.value;
+            pageSettings.footerRight = settingFooterRight.value;
+            pageSettings.parser = settingParser.value;
+            pageSettings.stylesheet = settingStylesheet.value;
+
+            // Re-render preview with new settings
+            updatePreview();
+
+            // Close panel after applying
+            settingsPanel.classList.remove('open');
+            settingsBtn.classList.remove('active');
+        });
+
+        // Initialize form with default values
+        function initSettingsForm() {
+            settingPageSize.value = pageSettings.pageSize;
+            currentDisplayedPageSize = pageSettings.pageSize;
+
+            // Set margins in appropriate unit (stored internally in mm)
+            const displayInInches = usesInches(pageSettings.pageSize);
+            const unit = displayInInches ? 'in' : 'mm';
+
+            // Update labels
+            labelMarginTop.textContent = `Top (${unit})`;
+            labelMarginBottom.textContent = `Bottom (${unit})`;
+            labelMarginLeft.textContent = `Left (${unit})`;
+            labelMarginRight.textContent = `Right (${unit})`;
+
+            // Update step
+            const step = displayInInches ? '0.1' : '1';
+            settingMarginTop.step = step;
+            settingMarginBottom.step = step;
+            settingMarginLeft.step = step;
+            settingMarginRight.step = step;
+
+            // Display values in correct unit
+            if (displayInInches) {
+                settingMarginTop.value = mmToInches(pageSettings.marginTop);
+                settingMarginBottom.value = mmToInches(pageSettings.marginBottom);
+                settingMarginLeft.value = mmToInches(pageSettings.marginLeft);
+                settingMarginRight.value = mmToInches(pageSettings.marginRight);
+            } else {
+                settingMarginTop.value = pageSettings.marginTop;
+                settingMarginBottom.value = pageSettings.marginBottom;
+                settingMarginLeft.value = pageSettings.marginLeft;
+                settingMarginRight.value = pageSettings.marginRight;
+            }
+
+            settingFontFamily.value = pageSettings.fontFamily;
+            settingFontSize.value = pageSettings.fontSize;
+            settingLineHeight.value = pageSettings.lineHeight;
+            settingDecorationColor.value = pageSettings.decorationColor;
+            settingPageNumberPosition.value = pageSettings.pageNumberPosition;
+            settingPageNumberStyle.value = pageSettings.pageNumberStyle;
+            settingFirstPageHideHeader.checked = pageSettings.firstPageHideHeader;
+            settingFirstPageHideFooter.checked = pageSettings.firstPageHideFooter;
+            settingFirstPageSkipNumber.checked = pageSettings.firstPageSkipNumber;
+            settingHeaderLeft.value = pageSettings.headerLeft;
+            settingHeaderCenter.value = pageSettings.headerCenter;
+            settingHeaderRight.value = pageSettings.headerRight;
+            settingFooterLeft.value = pageSettings.footerLeft;
+            settingFooterCenter.value = pageSettings.footerCenter;
+            settingFooterRight.value = pageSettings.footerRight;
+            settingParser.value = pageSettings.parser;
+            settingStylesheet.value = pageSettings.stylesheet;
+        }
+
+        // --- Save Settings to Virtual File System ---
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        const loadSettingsBtn = document.getElementById('load-settings-btn');
+        let settingsFolderId = null;  // Cache the settings folder ID
+
+        // Ensure settings folder exists
+        async function ensureSettingsFolder() {
+            if (settingsFolderId) return settingsFolderId;
+
+            try {
+                const tree = await FileAPI.getTree();
+                const settingsFolder = tree.find(f => f.name === 'settings' && f.type === 'folder');
+                if (settingsFolder) {
+                    settingsFolderId = settingsFolder.id;
+                } else {
+                    // Create settings folder
+                    const folder = await FileAPI.createFile({
+                        name: 'settings',
+                        type: 'folder',
+                        parent_id: null
+                    });
+                    settingsFolderId = folder.id;
+                    await refreshFileTree();
+                }
+                return settingsFolderId;
+            } catch (err) {
+                console.error('Failed to ensure settings folder:', err);
+                return null;
+            }
+        }
+
+        saveSettingsBtn.addEventListener('click', async () => {
+            // Create a settings object with all current form values
+            const settingsToSave = {
+                pageSize: settingPageSize.value,
+                marginTop: usesInches(settingPageSize.value) ? inchesToMm(parseFloat(settingMarginTop.value) || 0) : parseInt(settingMarginTop.value) || 20,
+                marginBottom: usesInches(settingPageSize.value) ? inchesToMm(parseFloat(settingMarginBottom.value) || 0) : parseInt(settingMarginBottom.value) || 20,
+                marginLeft: usesInches(settingPageSize.value) ? inchesToMm(parseFloat(settingMarginLeft.value) || 0) : parseInt(settingMarginLeft.value) || 20,
+                marginRight: usesInches(settingPageSize.value) ? inchesToMm(parseFloat(settingMarginRight.value) || 0) : parseInt(settingMarginRight.value) || 20,
+                fontFamily: settingFontFamily.value,
+                fontSize: parseInt(settingFontSize.value) || 12,
+                lineHeight: parseFloat(settingLineHeight.value) || 1.5,
+                decorationColor: settingDecorationColor.value,
+                pageNumberPosition: settingPageNumberPosition.value,
+                pageNumberStyle: settingPageNumberStyle.value,
+                firstPageHideHeader: settingFirstPageHideHeader.checked,
+                firstPageHideFooter: settingFirstPageHideFooter.checked,
+                firstPageSkipNumber: settingFirstPageSkipNumber.checked,
+                headerLeft: settingHeaderLeft.value,
+                headerCenter: settingHeaderCenter.value,
+                headerRight: settingHeaderRight.value,
+                footerLeft: settingFooterLeft.value,
+                footerCenter: settingFooterCenter.value,
+                footerRight: settingFooterRight.value,
+                parser: settingParser.value,
+                stylesheet: settingStylesheet.value
+            };
+
+            const jsonString = JSON.stringify(settingsToSave, null, 2);
+
+            // Prompt for name
+            const name = prompt('Enter settings name:', 'my-settings');
+            if (!name) return;
+
+            const fileName = name.endsWith('.json') ? name : name + '.json';
+
+            try {
+                const folderId = await ensureSettingsFolder();
+                if (!folderId) {
+                    alert('Failed to create settings folder');
+                    return;
+                }
+
+                // Check if file already exists
+                const tree = await FileAPI.getTree();
+                const settingsFolder = tree.find(f => f.id === folderId);
+                const existing = settingsFolder?.children?.find(f => f.name === fileName);
+
+                if (existing) {
+                    // Update existing
+                    await FileAPI.updateFile(existing.id, { content: jsonString });
+                    // Settings updated successfully
+                } else {
+                    // Create new
+                    await FileAPI.createFile({
+                        name: fileName,
+                        type: 'file',
+                        parent_id: folderId,
+                        content: jsonString
+                    });
+                    // Settings saved successfully
+                }
+
+                await refreshFileTree();
+            } catch (err) {
+                alert('Failed to save settings: ' + err.message);
+            }
+        });
+
+        // --- Load Settings from Virtual File System ---
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsList = document.getElementById('settings-list');
+        let pendingSettingsFiles = [];  // Store files for click handler
+
+        loadSettingsBtn.addEventListener('click', async () => {
+            try {
+                const folderId = await ensureSettingsFolder();
+                if (!folderId) {
+                    alert('No settings folder found');
+                    return;
+                }
+
+                const tree = await FileAPI.getTree();
+                const settingsFolder = tree.find(f => f.id === folderId);
+                const settingsFiles = settingsFolder?.children?.filter(f => f.name.endsWith('.json')) || [];
+
+                if (settingsFiles.length === 0) {
+                    settingsList.innerHTML = '<div class="settings-empty">No saved settings yet.<br>Use "Save Settings" to create one.</div>';
+                } else {
+                    pendingSettingsFiles = settingsFiles;
+                    settingsList.innerHTML = settingsFiles.map(f => `
+                        <div class="settings-item" data-id="${f.id}">
+                            <span class="settings-icon">⚙️</span>
+                            <span class="settings-name">${escapeHtml(f.name.replace('.json', ''))}</span>
+                        </div>
+                    `).join('');
+                }
+
+                settingsModal.classList.remove('hidden');
+            } catch (err) {
+                alert('Failed to load settings list: ' + err.message);
+            }
+        });
+
+        // Handle settings item click
+        settingsList.addEventListener('click', async (e) => {
+            const item = e.target.closest('.settings-item');
+            if (!item) return;
+
+            const fileId = parseInt(item.dataset.id);
+            const selectedFile = pendingSettingsFiles.find(f => f.id === fileId);
+            if (!selectedFile) return;
+
+            try {
+                const file = await FileAPI.getFile(selectedFile.id);
+                const loadedSettings = JSON.parse(file.content);
+
+                // Update pageSettings object
+                Object.assign(pageSettings, loadedSettings);
+
+                // Update form to reflect loaded settings
+                initSettingsForm();
+
+                // Update the current page size tracker
+                currentDisplayedPageSize = pageSettings.pageSize;
+
+                settingsModal.classList.add('hidden');
+                // Settings loaded successfully
+            } catch (err) {
+                alert('Failed to load settings: ' + err.message);
+            }
+        });
+
+        // Cancel button
+        document.getElementById('settings-modal-cancel').addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+        });
+
+        initSettingsForm();
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,311 @@
+/*
+ * Default stylesheet — applied to all documents, always.
+ * Ensures every parser-generated element renders legibly with no theme selected.
+ * Themed stylesheets inject after this and override whatever they wish.
+ */
+
+/* ── Color tokens ───────────────────────────────────────────────────────── */
+:root {
+  --text-main:    #1a1a1a;
+  --text-muted:   #555555;
+  --link-color:   #1a56cc;
+  --border-color: #888888;
+  --border-soft:  #cccccc;
+
+  /* Callout semantic colors */
+  --success-bg:     rgba(240,250,242,0.7);
+  --success-border: #3a9a52;
+  --success-text:   #1f6b34;
+  --info-bg:        rgba(240,244,252,0.7);
+  --info-border:    #3a6bc4;
+  --info-text:      #1f468a;
+  --warning-bg:     rgba(253,248,236,0.7);
+  --warning-border: #c49a20;
+  --warning-text:   #7a5e00;
+  --danger-bg:      rgba(253,240,240,0.7);
+  --danger-border:  #c44040;
+  --danger-text:    #8a1f1f;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+.markdown-body {
+  display: flow-root;
+  color: var(--text-main);
+  text-align: left;
+}
+
+/* ── Headings ───────────────────────────────────────────────────────────── */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  clear: both;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+  color: var(--text-main);
+}
+
+.markdown-body h1 { font-size: 2rem;   margin-top: 0.5em; }
+.markdown-body h2 { font-size: 1.6rem; }
+.markdown-body h3 { font-size: 1.3rem; }
+.markdown-body h4 { font-size: 1.1rem; }
+.markdown-body h5 { font-size: 1rem;   font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.markdown-body h6 { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); }
+
+/* ── Paragraphs & links ─────────────────────────────────────────────────── */
+.markdown-body p {
+  margin-top: 0;
+  margin-bottom: 1.2em;
+}
+
+.markdown-body a {
+  color: var(--link-color);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+/* ── Blockquote ─────────────────────────────────────────────────────────── */
+.markdown-body blockquote {
+  margin: 1.5em 0;
+  padding: 0.75em 1.25em;
+  border-left: 4px solid var(--border-color);
+  color: var(--text-muted);
+  font-style: italic;
+  background-color: rgba(255,255,255,0.14);
+}
+
+.markdown-body blockquote > *:last-child { margin-bottom: 0; }
+
+/* ── Lists ──────────────────────────────────────────────────────────────── */
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.8em;
+  margin-bottom: 1.2em;
+}
+
+.markdown-body li { margin-bottom: 0.25em; }
+
+/* ── Code ───────────────────────────────────────────────────────────────── */
+.markdown-body code {
+  font-size: 0.875em;
+  background: rgba(255,255,255,0.18);
+  color: #1a1a1a;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+.markdown-body pre {
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 4px;
+  padding: 1em 1.2em;
+  margin-bottom: 1.4em;
+  font-size: 0.875em;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+.markdown-body pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.markdown-body table {
+  border-collapse: collapse;
+  width: auto;
+  max-width: 100%;
+  margin: 1.4em 0;
+  font-size: 0.9em;
+  table-layout: auto;
+}
+
+.markdown-body th,
+.markdown-body td {
+  padding: 0.5em 0.9em;
+  text-align: left;
+  border: 1px solid var(--border-soft);
+}
+
+.markdown-body th {
+  font-weight: 700;
+  background: rgba(0,0,0,0.07);
+}
+
+/* ── HR ─────────────────────────────────────────────────────────────────── */
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--border-soft);
+  margin: 2em 0;
+}
+
+/* ── Images ─────────────────────────────────────────────────────────────── */
+.markdown-body img { margin: 1em auto; }
+
+/* ── Callout containers ─────────────────────────────────────────────────── */
+.markdown-body .success,
+.markdown-body .info,
+.markdown-body .warning,
+.markdown-body .danger {
+  padding: 0.9em 1.2em;
+  margin: 1.4em 0;
+  border: 1px solid;
+  border-left-width: 4px;
+  border-radius: 3px;
+  font-size: 0.93em;
+}
+
+.markdown-body .success,
+.markdown-body .success > * { border-color: var(--success-border); background: var(--success-bg); color: var(--success-text); }
+.markdown-body .info,
+.markdown-body .info > *    { border-color: var(--info-border);    background: var(--info-bg);    color: var(--info-text); }
+.markdown-body .warning,
+.markdown-body .warning > * { border-color: var(--warning-border); background: var(--warning-bg); color: var(--warning-text); }
+.markdown-body .danger,
+.markdown-body .danger > *  { border-color: var(--danger-border);  background: var(--danger-bg);  color: var(--danger-text); }
+
+/* Callout paragraphs inherit color; reset last margin */
+.markdown-body .success p,
+.markdown-body .info p,
+.markdown-body .warning p,
+.markdown-body .danger p { margin-bottom: 0.5em; }
+.markdown-body .success > *:last-child,
+.markdown-body .info    > *:last-child,
+.markdown-body .warning > *:last-child,
+.markdown-body .danger  > *:last-child { margin-bottom: 0; }
+
+/* ── Layout containers ──────────────────────────────────────────────────── */
+.markdown-body .left {
+  float: left;
+  max-width: min(44%, 20rem);
+  margin: 0 1.5em 1em 0;
+}
+
+.markdown-body .right  { float: right; max-width: min(44%, 20rem); margin: 0 0 1em 1.5em; }
+.markdown-body .center { text-align: center; margin: 0 0 1em; }
+
+/* ── Spoiler ────────────────────────────────────────────────────────────── */
+.markdown-body details.spoil {
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  margin-bottom: 1.4em;
+}
+
+.markdown-body details.spoil > summary {
+  padding: 0.7em 1.1em;
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+
+.markdown-body details.spoil > summary::before {
+  content: '▶ ';
+  font-size: 0.75em;
+}
+
+.markdown-body details.spoil[open] > summary::before { content: '▼ '; }
+.markdown-body details.spoil[open] > summary { border-bottom: 1px solid var(--border-soft); }
+.markdown-body details.spoil > :not(summary) { padding: 1em 1.1em; }
+
+/* ── Columns ────────────────────────────────────────────────────────────── */
+.markdown-body .cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.2em;
+  margin-bottom: 1.4em;
+}
+
+.markdown-body .col {
+  min-width: 0;
+  padding: 0.9em 1em;
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+}
+
+.markdown-body .col > *:last-child { margin-bottom: 0; }
+
+/* ── Tabs ───────────────────────────────────────────────────────────────── */
+.markdown-body .tabs {
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  margin-bottom: 1.4em;
+  overflow: hidden;
+}
+
+.markdown-body .tabs-bar {
+  display: flex;
+  gap: 0.2em;
+  padding: 0.4em 0.5em;
+  border-bottom: 1px solid var(--border-soft);
+  background: #f3f4f6;
+  overflow-x: auto;
+}
+
+.markdown-body .tabs-bar-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 0.4em 0.85em;
+  cursor: pointer;
+  font-size: 0.875em;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.markdown-body .tabs-bar-btn.active {
+  color: var(--text-main);
+  background: #ffffff;
+  border-color: var(--border-soft);
+}
+
+.markdown-body .tab { display: none; padding: 1em 1.1em; }
+.markdown-body .tab.active { display: block; }
+/* Fallback when JS tab switching is not active */
+.markdown-body .tabs:not([data-js]) .tab { display: block; }
+.markdown-body .tabs:not([data-js]) .tab + .tab { border-top: 1px solid var(--border-soft); }
+
+/* ── TOC ────────────────────────────────────────────────────────────────── */
+.markdown-body nav.toc,
+.markdown-body .toc-list {
+  padding: 1em 1.2em;
+  margin-bottom: 1.4em;
+  font-size: 0.9em;
+}
+
+/* ── Span color utilities ───────────────────────────────────────────────── */
+.markdown-body span.red    { color: #b91c1c; }
+.markdown-body span.yellow { color: #92690b; }
+.markdown-body span.green  { color: #15803d; }
+.markdown-body span.blue   { color: #1d4ed8; }
+
+/* ── Span badges ────────────────────────────────────────────────────────── */
+.markdown-body span.success,
+.markdown-body span.info,
+.markdown-body span.warning,
+.markdown-body span.danger {
+  padding: 0.15em 0.55em;
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.markdown-body span.success { color: var(--success-text); border-color: var(--success-border); background: var(--success-bg); }
+.markdown-body span.info    { color: var(--info-text);    border-color: var(--info-border);    background: var(--info-bg); }
+.markdown-body span.warning { color: var(--warning-text); border-color: var(--warning-border); background: var(--warning-bg); }
+.markdown-body span.danger  { color: var(--danger-text);  border-color: var(--danger-border);  background: var(--danger-bg); }
+
+/* ── QR code (static display only) ─────────────────────────────────────── */
+.markdown-body span.qrcode { background: #ffffff; padding: 4px; }

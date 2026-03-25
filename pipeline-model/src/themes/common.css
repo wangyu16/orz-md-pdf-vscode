@@ -1,0 +1,96 @@
+/*
+ * Common structural rules applied to all themes.
+ * Extracted from @orz-how/markdown-parser/themes/common.css.
+ *
+ * Omitted (screen/interactive only):
+ *   - @media print blocks (paged.js handles print layout)
+ *   - QR code hover/zoom/overlay (not useful in printed output)
+ *   - table display:block + overflow-x:auto (breaks print rendering)
+ */
+
+
+/* ── Images ─────────────────────────────────────────────────────────────── */
+/* Block-level sizing — complements #content img rules in base template      */
+.markdown-body img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Inline image inside a paragraph stays inline */
+.markdown-body p > img {
+  display: inline;
+  margin: 0;
+}
+
+/* ── Semantic badge spans ────────────────────────────────────────────────── */
+.markdown-body span.success,
+.markdown-body span.info,
+.markdown-body span.warning,
+.markdown-body span.danger {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ── SMILES chemical structure ───────────────────────────────────────────── */
+.markdown-body div.smiles-render {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1.5rem 0;
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.markdown-body div.smiles-render canvas,
+.markdown-body canvas[data-smiles] {
+  display: block;
+  max-width: min(100%, 16rem);
+  height: auto;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ── QR Code — static display only (no zoom/overlay) ────────────────────── */
+.markdown-body span.qrcode {
+  display: inline-block;
+  line-height: 0;
+}
+
+.markdown-body span.qrcode svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ── Unified overlay styles (theme-agnostic) ───────────────────────────────── */
+.markdown-body blockquote,
+.markdown-body pre,
+.markdown-body code {
+  background-color: rgba(0,0,0,0.16);
+}
+
+.markdown-body table {
+  width: auto;
+  max-width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+  margin: 1.4em 0;
+}
+
+.markdown-body th,
+.markdown-body td {
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+

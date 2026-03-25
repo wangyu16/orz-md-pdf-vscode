@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^which chromium \\|\\| which chromium-browser \\|\\| which google-chrome \\|\\| which google-chrome-stable 2>/dev/null; echo \"---\"; node --version; npm --version$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

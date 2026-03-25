@@ -1,0 +1,71 @@
+{
+  "name": "orz-md-pdf",
+  "displayName": "ORZ MD-PDF Editor",
+  "description": "Edit and preview .md.pdf files — valid PDFs with embedded Markdown source.",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.88.0" },
+  "publisher": "orz-how",
+  "categories": ["Other"],
+  "license": "MIT",
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js --watch",
+    "vscode:prepublish": "node build.js"
+  },
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "orzMdPdf.editor",
+        "displayName": "MD-PDF Editor",
+        "selector": [{ "filenamePattern": "*.md.pdf" }],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "orzMdPdf.newFile",
+        "title": "MD-PDF: New File"
+      },
+      {
+        "command": "orzMdPdf.convertMd",
+        "title": "MD-PDF: Convert .md to .md.pdf"
+      },
+      {
+        "command": "orzMdPdf.exportPdf",
+        "title": "MD-PDF: Export as Pure PDF"
+      },
+      {
+        "command": "orzMdPdf.togglePreview",
+        "title": "MD-PDF: Toggle Preview Panel"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "orzMdPdf.convertMd",
+          "when": "resourceExtname == '.md'",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "orzMdPdf.exportPdf",
+          "when": "activeCustomEditorId == 'orzMdPdf.editor'"
+        },
+        {
+          "command": "orzMdPdf.togglePreview",
+          "when": "activeCustomEditorId == 'orzMdPdf.editor'"
+        }
+      ]
+    }
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.88.0",
+    "esbuild": "^0.21.0"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "puppeteer-core": "^22.0.0"
+  }
+}

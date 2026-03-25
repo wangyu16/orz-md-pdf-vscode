@@ -1,0 +1,317 @@
+/*
+ * Theme: beige-decent-1
+ * Style: Warm editorial/bookish. Justified text, centered h1 with heavy bottom
+ *        border, italic blockquote with top/bottom rules, feathered hr.
+ * Colors: warm sepia palette; bg supplied by page_background.
+ * Font family: set via font_preset / font_heading_preset.
+ */
+
+/* ── Color tokens ───────────────────────────────────────────────────────── */
+:root {
+  --text-main:    #4d4036;
+  --text-muted:   #7d7066;
+  --link-color:   #944238;
+  --link-hover:   #b85447;
+  --border-color: #d6ccbe;
+
+  --info-bg:       rgba(238,243,246,0.7);
+  --info-border:   #628bc4;
+  --success-bg:    rgba(239,244,236,0.7);
+  --success-border:#6da37d;
+  --warning-bg:    rgba(254,247,236,0.7);
+  --warning-border:#d49544;
+  --danger-bg:     rgba(251,239,239,0.7);
+  --danger-border: #c96767;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+.markdown-body {
+  display: flow-root;
+  color: var(--text-main);
+  text-align: left;
+}
+
+.markdown-body p {
+  text-align: justify;
+  hyphens: auto;
+}
+
+/* ── Headings ───────────────────────────────────────────────────────────── */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  clear: both;
+  color: #1a1614;
+  margin-top: 2.5em;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.markdown-body h1 {
+  font-size: 2.75em;
+  font-weight: 900;
+  text-align: center;
+  border-bottom: 2px solid var(--text-main);
+  padding-bottom: 0.3em;
+  margin-bottom: 2em;
+  letter-spacing: -0.02em;
+}
+
+.markdown-body h2 {
+  font-size: 1.8em;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.2em;
+}
+
+.markdown-body h3 { font-size: 1.4em; }
+
+/* ── Paragraphs & links ─────────────────────────────────────────────────── */
+.markdown-body p { margin-bottom: 1.5em; }
+
+.markdown-body a {
+  color: var(--link-color);
+  text-decoration: underline;
+  text-decoration-color: var(--border-color);
+  text-underline-offset: 3px;
+}
+
+.markdown-body a:hover {
+  color: var(--link-hover);
+  text-decoration-color: var(--link-hover);
+}
+
+.markdown-body strong { font-weight: 700; color: #1a1614; }
+
+/* ── Lists ──────────────────────────────────────────────────────────────── */
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+  margin-bottom: 1.5em;
+}
+
+.markdown-body li { margin-bottom: 0.5em; }
+
+/* ── Code ───────────────────────────────────────────────────────────────── */
+.markdown-body code {
+  background-color: rgba(242, 238, 232, 0.3);
+  padding: 0.15em 0.3em;
+  border-radius: 3px;
+  font-size: 0.85em;
+  color: #794a3a;
+}
+
+.markdown-body pre {
+  background-color: rgba(240, 236, 229, 0.3);
+  padding: 1.25em;
+  border-radius: 4px;
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  margin-bottom: 1.5em;
+}
+
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+  color: var(--text-main);
+  font-size: 0.9em;
+}
+
+/* ── Blockquote ─────────────────────────────────────────────────────────── */
+.markdown-body blockquote {
+  margin: 2.5em 2em;
+  padding: 1.5em 2em;
+  border-top: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  font-style: italic;
+  font-size: 1.25em;
+  color: #4a3e38;
+  text-align: center;
+  background-color: rgba(236, 226, 210, 0.3);
+}
+
+.markdown-body blockquote p:last-child { margin-bottom: 0; }
+
+/* ── Table ──────────────────────────────────────────────────────────────── */
+.markdown-body table {
+  border-collapse: collapse;
+  margin-bottom: 2em;
+  font-size: 0.95em;
+  width: auto;
+  max-width: 100%;
+  table-layout: auto;
+}
+
+.markdown-body th, .markdown-body td {
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.75em 1em;
+  text-align: left;
+}
+
+.markdown-body th {
+  font-weight: 700;
+  border-bottom: 2px solid var(--text-main);
+  color: #1a1614;
+}
+
+/* ── HR: feathered gradient rule ────────────────────────────────────────── */
+.markdown-body hr {
+  border: 0;
+  height: 1px;
+  background-image: linear-gradient(to right, rgba(0,0,0,0), var(--border-color), rgba(0,0,0,0));
+  margin: 3em 0;
+}
+
+/* ── Images ─────────────────────────────────────────────────────────────── */
+.markdown-body img { margin: 1.5em auto; }
+.markdown-body p > img { display: inline; margin: 0; }
+
+/* ── Callout containers ─────────────────────────────────────────────────── */
+.markdown-body .success,
+.markdown-body .info,
+.markdown-body .warning,
+.markdown-body .danger {
+  padding: 1em 1.5em;
+  margin: 1.5em 0;
+  border-left: 4px solid;
+  border-radius: 0 4px 4px 0;
+}
+
+.markdown-body .info    { background: var(--info-bg);    border-color: var(--info-border); }
+.markdown-body .success { background: var(--success-bg); border-color: var(--success-border); }
+.markdown-body .warning { background: var(--warning-bg); border-color: var(--warning-border); }
+.markdown-body .danger  { background: var(--danger-bg);  border-color: var(--danger-border); }
+
+/* ── Layout helpers ─────────────────────────────────────────────────────── */
+.markdown-body .left {
+  float: left;
+  max-width: min(44%, 20rem);
+  padding: 0.8em 1em;
+  margin: 0 1.5em 1em 0;
+  background: #ebe0ce;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+}
+
+.markdown-body .right  { text-align: right;  margin: 0 0 1em; }
+.markdown-body .center { text-align: center; margin: 0 0 1em; }
+
+/* ── Spoiler ────────────────────────────────────────────────────────────── */
+.markdown-body details.spoil {
+  background-color: rgba(246, 239, 228, 0.3);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 1.5em;
+  overflow: hidden;
+}
+
+.markdown-body details.spoil > summary {
+  background-color: rgba(238, 228, 209, 0.3);
+  padding: 0.8em 1.2em;
+  font-weight: 600;
+  color: var(--text-main);
+  cursor: pointer;
+  list-style: none;
+}
+
+.markdown-body details.spoil[open] > summary {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.markdown-body details.spoil > :not(summary) {
+  padding: 1.2em;
+  background-color: rgba(246, 239, 228, 0.3);
+}
+
+/* ── Tabs ───────────────────────────────────────────────────────────────── */
+.markdown-body .tabs {
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 1.5em;
+  overflow: hidden;
+  background: rgba(246, 239, 228, 0.3);
+}
+
+.markdown-body .tabs-bar {
+  display: flex;
+  gap: 0.5em;
+  background: rgba(238, 228, 209, 0.3);
+  padding: 0.5em 0.5em 0;
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.markdown-body .tabs-bar::-webkit-scrollbar { display: none; }
+
+.markdown-body .tabs-bar-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  padding: 0.6em 1.2em;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.markdown-body .tabs-bar-btn.active {
+  background: rgba(246, 239, 228, 0.3);
+  color: var(--text-main);
+  border-color: var(--border-color);
+  border-bottom-color: transparent;
+  margin-bottom: -1px;
+}
+
+.markdown-body .tab { display: none; padding: 1.5em; }
+.markdown-body .tab.active { display: block; }
+.markdown-body .tabs:not([data-js]) .tab { display: block; }
+.markdown-body .tabs:not([data-js]) .tab + .tab { border-top: 1px solid var(--border-color); }
+
+/* ── Cols ───────────────────────────────────────────────────────────────── */
+.markdown-body .cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2em;
+  margin-bottom: 1.5em;
+}
+
+.markdown-body .col {
+  padding: 1.2em;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: rgba(246, 239, 228, 0.3);
+}
+
+.markdown-body .col > *:last-child { margin-bottom: 0; }
+
+/* ── Span color utilities ───────────────────────────────────────────────── */
+.markdown-body span.red    { color: #b73a3a; }
+.markdown-body span.yellow { color: #b58900; }
+.markdown-body span.green  { color: #438f4d; }
+.markdown-body span.blue   { color: #266baf; }
+
+/* ── Span badges ────────────────────────────────────────────────────────── */
+.markdown-body span.success,
+.markdown-body span.info,
+.markdown-body span.warning,
+.markdown-body span.danger {
+  font-size: 0.75em;
+  font-weight: bold;
+  padding: 0.25em 0.6em;
+  border-radius: 12px;
+  color: #fff;
+  letter-spacing: 0.05em;
+}
+
+.markdown-body span.success { background-color: var(--success-border); }
+.markdown-body span.info    { background-color: var(--info-border); }
+.markdown-body span.warning { background-color: var(--warning-border); }
+.markdown-body span.danger  { background-color: var(--danger-border); }
+
+.markdown-body span.qrcode { background: rgba(255, 255, 255, 0.3); border-radius: 4px; }
