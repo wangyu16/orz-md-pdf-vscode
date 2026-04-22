@@ -14,11 +14,6 @@ esbuild.context({
         'vscode',
         // These large runtime modules stay external and load from extension/node_modules.
         'puppeteer-core',
-        'pagedjs',
-        'mermaid',
-        'smiles-drawer',
-        // Fontsource packages — referenced by resolved path at runtime
-        '@fontsource/*',
         // orz markdown parser
         '@orz-how/markdown-parser',
         // highlight.js

@@ -66,5 +66,5 @@ Double-click any `.md.pdf` file in the Explorer. The extension opens the Markdow
 
 ## Known Limitations
 
-- The preview requires an active network connection on first load to fetch paged.js, KaTeX, and Mermaid from their CDNs.
+- The preview requires an active network connection on first load to fetch paged.js, KaTeX, Mermaid, and fonts from their CDNs. Fonts are loaded from Google Fonts — if unavailable, the browser falls back to similar system fonts automatically.
 - PDF export uses Puppeteer, which requires a local Chrome/Chromium binary. The preview itself works without Chrome.

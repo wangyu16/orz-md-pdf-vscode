@@ -1,7 +1,7 @@
 'use strict';
 
 const { CORE_DEFAULT_SETTINGS } = require('../config/settings-schema');
-const { getFontFamily, getFontPresetCss } = require('../fonts/registry');
+const { getFontFamily, getFontPresetLinks } = require('../fonts/registry');
 const { getThemeCss, getCommonCss, getDefaultCss } = require('../themes/registry');
 const { buildHeaderFooterCss } = require('./header-footer');
 const {
@@ -24,15 +24,15 @@ function generatePagedHtml(contentHtml, userSettings = {}, _themeCss = null, pag
     const settings = Object.assign({}, CORE_DEFAULT_SETTINGS, userSettings);
     const assets = Object.assign({}, RENDERER_ASSETS, rendererAssets);
     const resolvedFontFamily = getFontFamily(settings.fontPreset, settings.fontFamily);
-    const fontPresetCss = getFontPresetCss(settings.fontPreset);
+    const fontPresetLinks = getFontPresetLinks(settings.fontPreset);
     const resolvedThemeCss = getThemeCss(settings.theme);
     const commonCss = getCommonCss();
     const defaultCss = getDefaultCss();
 
     // Heading font — only if different from body preset
     const headingPreset = settings.fontHeadingPreset;
-    const headingFontPresetCss = (headingPreset && headingPreset !== settings.fontPreset)
-        ? getFontPresetCss(headingPreset)
+    const headingFontPresetLinks = (headingPreset && headingPreset !== settings.fontPreset)
+        ? getFontPresetLinks(headingPreset)
         : '';
     const headingFontFamily = headingPreset ? getFontFamily(headingPreset, settings.fontFamily) : '';
     const headingFontCss = headingFontFamily
@@ -363,7 +363,12 @@ function generatePagedHtml(contentHtml, userSettings = {}, _themeCss = null, pag
                 if (typeof existingPagedBefore === 'function') {
                     await existingPagedBefore();
                 }
-                await document.fonts.ready;
+                // Wait for fonts with a 3 s timeout; Google Fonts can be slow
+                // in VS Code's webview and would otherwise block paged.js indefinitely.
+                await Promise.race([
+                    document.fonts.ready,
+                    new Promise(function(resolve) { setTimeout(resolve, 3000); }),
+                ]);
                 initTabs();
                 await renderMermaidBlocks();
                 await renderSmilesBlocks();
@@ -384,6 +389,8 @@ function generatePagedHtml(contentHtml, userSettings = {}, _themeCss = null, pag
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="${KATEX_CSS_CDN}">
+${fontPresetLinks}
+${headingFontPresetLinks}
 <style>
 body {
     font-family: ${resolvedFontFamily};
@@ -392,8 +399,6 @@ body {
     color: #000;
     margin: 0;
 }
-${fontPresetCss}
-${headingFontPresetCss}
 ${pageCss}
 ${screenCss}
 ${baseContentCss}
@@ -426,8 +431,13 @@ if (window.PagedPolyfill) {
             previewStyle.textContent = ${JSON.stringify(renderedScreenCss)};
             document.head.appendChild(previewStyle);
         }
-        try { window.parent.postMessage({ type: 'paged-rendered', token: (new URLSearchParams(location.search)).get('t') }, '*'); } catch (error) {}
         window.__pagedRendered = true;
+        var renderMessage = { type: 'paged-rendered', token: (new URLSearchParams(location.search)).get('t') };
+        [0, 150, 500, 1200].forEach(function(delay) {
+            setTimeout(function() {
+                try { window.parent.postMessage(renderMessage, '*'); } catch (error) {}
+            }, delay);
+        });
     });
 }
 </script>

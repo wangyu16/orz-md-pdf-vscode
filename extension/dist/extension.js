@@ -509,11 +509,6 @@ var require_PreviewServer = __commonJS({
       _handleRequest(req, res) {
         const requestPath = new URL(req.url, "http://127.0.0.1").pathname;
         try {
-          if (requestPath === "/") {
-            res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
-            res.end(this._buildShellHtml());
-            return;
-          }
           if (requestPath === "/content") {
             res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
             res.end(this._contentHtml);
@@ -534,129 +529,6 @@ var require_PreviewServer = __commonJS({
           res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
           res.end(error.stack || error.message || String(error));
         }
-      }
-      _buildShellHtml() {
-        return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>MD-PDF Preview Shell</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; background: #525659; overflow: hidden; }
-  #frame-container { position: relative; width: 100%; height: 100vh; }
-  .preview-frame { display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; background: #525659; }
-  #status { position: fixed; top: 8px; right: 12px; font: 11px/1 monospace; color: #aaa; z-index: 10; pointer-events: none; }
-  #export-btn {
-    position: fixed; bottom: 16px; right: 16px; z-index: 20;
-    background: rgba(30,30,30,0.82); color: #ccc;
-    border: 1px solid #555; border-radius: 5px;
-    padding: 6px 14px; font: 12px/1.5 sans-serif;
-    cursor: pointer; user-select: none;
-  }
-  #export-btn:hover { background: rgba(70,70,70,0.95); color: #fff; border-color: #888; }
-</style>
-</head>
-<body>
-<div id="status">loading...</div>
-<button id="export-btn" title="Export as PDF" onclick="window.parent.postMessage({type:'export-pdf'},'*')">&#8595; Export PDF</button>
-<div id="frame-container">
-  <iframe id="frame-a" class="preview-frame" style="z-index:1" src="/content" title="Paged Preview"></iframe>
-  <iframe id="frame-b" class="preview-frame" style="z-index:0" title="Paged Preview (buffer)"></iframe>
-</div>
-<script>
-(function () {
-    var frameA = document.getElementById('frame-a');
-    var frameB = document.getElementById('frame-b');
-    var status = document.getElementById('status');
-
-    // activeFrame is the currently visible frame; hiddenFrame pre-loads the next render.
-    var activeFrame = frameA;
-    var hiddenFrame = frameB;
-    var savedScrollPosition = 0;
-
-    // expectedToken: the ?t= value of the currently-loading hidden frame.
-    // null means no update is in progress (idle / initial load).
-    // Using a token instead of e.source comparison because VS Code's sandboxed
-    // webview environment does not reliably propagate e.source across iframe boundaries.
-    var expectedToken = null;
-
-    function saveScrollPosition() {
-        try {
-            var doc = activeFrame.contentDocument;
-            savedScrollPosition = doc.documentElement.scrollTop || doc.body.scrollTop || 0;
-        } catch (e) {
-            savedScrollPosition = 0;
-        }
-    }
-
-    function restoreScrollPosition(frame) {
-        try {
-            var doc = frame.contentDocument;
-            doc.documentElement.scrollTop = savedScrollPosition;
-            doc.body.scrollTop = savedScrollPosition;
-        } catch (e) {}
-    }
-
-    function swapFrames() {
-        // Restore scroll in the just-rendered frame before revealing it.
-        restoreScrollPosition(hiddenFrame);
-
-        // Bring the rendered frame to the front using z-index.
-        // Both frames stay display:block so paged.js can compute real dimensions.
-        hiddenFrame.style.zIndex = '1';
-        activeFrame.style.zIndex = '0';
-
-        var tmp = activeFrame;
-        activeFrame = hiddenFrame;
-        hiddenFrame = tmp;
-
-        status.textContent = 'ready';
-        try { window.parent.postMessage({ type: 'paged-rendered' }, '*'); } catch (e) {}
-    }
-
-    function reloadContent() {
-        saveScrollPosition();
-        status.textContent = 'rendering...';
-        // Stamp the URL with a unique token; the content page echoes it back in
-        // the paged-rendered message so we can identify this exact load.
-        expectedToken = String(Date.now());
-        hiddenFrame.src = '/content?t=' + expectedToken;
-    }
-
-    window.addEventListener('message', function (e) {
-        if (!e.data) return;
-
-        if (e.data.type === 'paged-rendered') {
-            var token = e.data.token || null;
-            if (expectedToken !== null && token === expectedToken) {
-                // The hidden frame we requested has finished rendering \u2014 swap it in.
-                expectedToken = null;
-                swapFrames();
-            } else if (expectedToken === null && token === null) {
-                // No update pending: the initial active-frame load just finished.
-                status.textContent = 'ready';
-                try { window.parent.postMessage({ type: 'paged-rendered' }, '*'); } catch (err) {}
-            }
-            // else: stale event from a superseded load \u2014 ignore.
-            return;
-        }
-
-        if (e.data.type === 'mdpdf-reload') {
-            reloadContent();
-        }
-    });
-
-    // Show 'paginating\u2026' while paged.js is laying out the initial frame.
-    frameA.addEventListener('load', function () {
-        if (expectedToken === null) {
-            status.textContent = 'paginating...';
-        }
-    });
-})();
-</script>
-</body>
-</html>`;
       }
     };
     module2.exports = { PreviewServer };
@@ -777,9 +649,10 @@ var require_PreviewWebview = __commonJS({
         this._statusBar.setState("rendering");
         try {
           const resolvedMd = resolveImages(this._document.markdown, this._document.uri);
-          const fullHtml = await Pipeline.buildPreviewHtml(resolvedMd, (absPath) => this._server.getAssetPath(absPath));
+          const serverOrigin = this._server.origin;
+          const fullHtml = await Pipeline.buildPreviewHtml(resolvedMd, (absPath) => `${serverOrigin}${this._server.getAssetPath(absPath)}`);
           this._server.setContentHtml(fullHtml);
-          this._panel.webview.html = this._buildOuterShellHtml();
+          this._panel.webview.html = this._buildWebviewHtml();
           this._ready = true;
         } catch (err) {
           this._statusBar.setState("error", err.message);
@@ -795,7 +668,8 @@ var require_PreviewWebview = __commonJS({
         this._statusBar.setState("rendering");
         try {
           const resolvedMd = resolveImages(markdown, this._document.uri);
-          const fullHtml = await Pipeline.buildPreviewHtml(resolvedMd, (absPath) => this._server.getAssetPath(absPath));
+          const serverOrigin = this._server.origin;
+          const fullHtml = await Pipeline.buildPreviewHtml(resolvedMd, (absPath) => `${serverOrigin}${this._server.getAssetPath(absPath)}`);
           this._server.setContentHtml(fullHtml);
           this._panel.webview.postMessage({ type: "mdpdf-reload" });
         } catch (err) {
@@ -816,12 +690,17 @@ var require_PreviewWebview = __commonJS({
         return `<!DOCTYPE html><html><body style="background:#1e1e1e;color:#f44;font-family:monospace;padding:2rem">
 <h2>MD-PDF Render Error</h2><pre>${escapeHtml(message)}</pre></body></html>`;
       }
-      _buildOuterShellHtml() {
-        const shellUrl = `${this._server.origin}/`;
+      // Embed the shell UI directly in the webview HTML so that VS Code's portMapping
+      // only needs to proxy the content iframes (localhost/content), not an intermediate
+      // shell page. This eliminates the 3-level iframe chain that caused the grey/empty
+      // panel in the Extension Development Host.
+      _buildWebviewHtml() {
+        const serverOrigin = this._server.origin;
+        const contentUrl = `${serverOrigin}/content`;
         const csp = [
           "default-src 'none'",
-          `frame-src ${this._server.origin}`,
-          `child-src ${this._server.origin}`,
+          `frame-src ${serverOrigin}`,
+          `child-src ${serverOrigin}`,
           "script-src 'unsafe-inline'",
           "style-src 'unsafe-inline'"
         ].join("; ");
@@ -832,46 +711,132 @@ var require_PreviewWebview = __commonJS({
 <meta http-equiv="Content-Security-Policy" content="${csp}">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    background: #525659;
-    overflow: hidden;
-}
-
-#preview-shell {
-    display: block;
-    width: 100%;
-    height: 100vh;
-    border: none;
-    background: #525659;
-}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #525659; overflow: hidden; }
+  #frame-container { position: relative; width: 100%; height: 100vh; }
+  .preview-frame { display: block; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; background: #525659; }
+  #status { position: fixed; top: 8px; right: 12px; font: 11px/1 monospace; color: #aaa; z-index: 10; pointer-events: none; }
+  #export-btn {
+    position: fixed; bottom: 16px; right: 16px; z-index: 20;
+    background: rgba(30,30,30,0.82); color: #ccc;
+    border: 1px solid #555; border-radius: 5px;
+    padding: 6px 14px; font: 12px/1.5 sans-serif;
+    cursor: pointer; user-select: none;
+  }
+  #export-btn:hover { background: rgba(70,70,70,0.95); color: #fff; border-color: #888; }
 </style>
 </head>
 <body>
-<iframe id="preview-shell" src="${shellUrl}" title="MD-PDF Preview"></iframe>
+<div id="status">loading...</div>
+<button id="export-btn" title="Export as PDF">&#8595; Export PDF</button>
+<div id="frame-container">
+  <iframe id="frame-a" class="preview-frame" style="z-index:1" src="${contentUrl}" title="Paged Preview"></iframe>
+  <iframe id="frame-b" class="preview-frame" style="z-index:0" title="Paged Preview (buffer)"></iframe>
+</div>
 <script>
 (function () {
-    const vscode = acquireVsCodeApi();
-    const frame = document.getElementById('preview-shell');
+    var vscode = acquireVsCodeApi();
+    var serverOrigin = ${JSON.stringify(serverOrigin)};
+    var frameA = document.getElementById('frame-a');
+    var frameB = document.getElementById('frame-b');
+    var status = document.getElementById('status');
+    var exportBtn = document.getElementById('export-btn');
 
-    window.addEventListener('message', function (event) {
-        if (!event.data) return;
+    exportBtn.addEventListener('click', function () {
+        vscode.postMessage({ type: 'export-pdf' });
+    });
 
-        if (event.data.type === 'mdpdf-reload') {
-            if (frame && frame.contentWindow) {
-                frame.contentWindow.postMessage({ type: 'mdpdf-reload' }, '*');
+    var activeFrame = frameA;
+    var hiddenFrame = frameB;
+    var savedScrollPosition = 0;
+    var expectedToken = null;
+    var pollingTimer = null;
+
+    function startPolling(frame, onDone) {
+        if (pollingTimer) clearInterval(pollingTimer);
+        pollingTimer = setInterval(function() {
+            try {
+                if (frame.contentWindow && frame.contentWindow.__pagedRendered) {
+                    clearInterval(pollingTimer);
+                    pollingTimer = null;
+                    onDone();
+                }
+            } catch(e) {
+                // Cross-origin \u2014 portMapping not bridging; stop polling
+                clearInterval(pollingTimer);
+                pollingTimer = null;
+            }
+        }, 200);
+    }
+
+    function saveScrollPosition() {
+        try {
+            var doc = activeFrame.contentDocument;
+            savedScrollPosition = doc.documentElement.scrollTop || doc.body.scrollTop || 0;
+        } catch (e) { savedScrollPosition = 0; }
+    }
+
+    function restoreScrollPosition(frame) {
+        try {
+            var doc = frame.contentDocument;
+            doc.documentElement.scrollTop = savedScrollPosition;
+            doc.body.scrollTop = savedScrollPosition;
+        } catch (e) {}
+    }
+
+    function swapFrames() {
+        restoreScrollPosition(hiddenFrame);
+        hiddenFrame.style.zIndex = '1';
+        activeFrame.style.zIndex = '0';
+        var tmp = activeFrame;
+        activeFrame = hiddenFrame;
+        hiddenFrame = tmp;
+        status.textContent = 'ready';
+        vscode.postMessage({ type: 'paged-rendered' });
+    }
+
+    function reloadContent() {
+        saveScrollPosition();
+        status.textContent = 'rendering...';
+        expectedToken = String(Date.now());
+        hiddenFrame.src = serverOrigin + '/content?t=' + expectedToken;
+        startPolling(hiddenFrame, function() {
+            if (expectedToken !== null) {
+                expectedToken = null;
+                swapFrames();
+            }
+        });
+    }
+
+    window.addEventListener('message', function (e) {
+        if (!e.data) return;
+
+        if (e.data.type === 'paged-rendered') {
+            var token = e.data.token || null;
+            if (expectedToken !== null && token === expectedToken) {
+                expectedToken = null;
+                if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null; }
+                swapFrames();
+            } else if (expectedToken === null && token === null) {
+                if (pollingTimer) { clearInterval(pollingTimer); pollingTimer = null; }
+                status.textContent = 'ready';
+                vscode.postMessage({ type: 'paged-rendered' });
             }
             return;
         }
 
-        if (event.data.type === 'paged-rendered') {
-            vscode.postMessage({ type: 'paged-rendered' });
+        if (e.data.type === 'mdpdf-reload') {
+            reloadContent();
         }
+    });
 
-        if (event.data.type === 'export-pdf') {
-            vscode.postMessage({ type: 'export-pdf' });
+    frameA.addEventListener('load', function () {
+        if (expectedToken === null) {
+            status.textContent = 'paginating...';
+            startPolling(frameA, function() {
+                status.textContent = 'ready';
+                vscode.postMessage({ type: 'paged-rendered' });
+            });
         }
     });
 })();
