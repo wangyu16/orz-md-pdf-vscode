@@ -44,7 +44,7 @@ class VirtualDocProvider {
             // without hitting a "file not found" error.
             const base = path.basename(mdPdfUri.fsPath, '.md.pdf');
             const hash = crypto.createHash('md5').update(key).digest('hex').slice(0, 8);
-            tempPath = path.join(os.tmpdir(), `mdpdf-${base}-${hash}.md`);
+            tempPath = path.join(os.tmpdir(), `mdpdf-${base}-${hash}.orz-md`);
             this._tempFiles.set(key, tempPath);
         }
 

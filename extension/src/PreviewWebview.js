@@ -150,7 +150,7 @@ class PreviewWebview {
 <button id="export-btn" title="Export as PDF">&#8595; Export PDF</button>
 <div id="frame-container">
   <iframe id="frame-a" class="preview-frame" style="z-index:1" src="${contentUrl}" title="Paged Preview"></iframe>
-  <iframe id="frame-b" class="preview-frame" style="z-index:0" title="Paged Preview (buffer)"></iframe>
+  <iframe id="frame-b" class="preview-frame" style="z-index:0;opacity:0" title="Paged Preview (buffer)"></iframe>
 </div>
 <script>
 (function () {
@@ -167,7 +167,10 @@ class PreviewWebview {
 
     var activeFrame = frameA;
     var hiddenFrame = frameB;
-    var savedScrollPosition = 0;
+    // Scroll ratio [0,1] reported by the active content frame via postMessage.
+    // cross-origin rules block direct contentDocument access, so the content
+    // page sends updates and we echo the ratio back in each new frame's URL.
+    var savedScrollRatio = 0;
     var expectedToken = null;
     var pollingTimer = null;
 
@@ -181,44 +184,43 @@ class PreviewWebview {
                     onDone();
                 }
             } catch(e) {
-                // Cross-origin — portMapping not bridging; stop polling
                 clearInterval(pollingTimer);
                 pollingTimer = null;
             }
         }, 200);
     }
 
-    function saveScrollPosition() {
-        try {
-            var doc = activeFrame.contentDocument;
-            savedScrollPosition = doc.documentElement.scrollTop || doc.body.scrollTop || 0;
-        } catch (e) { savedScrollPosition = 0; }
-    }
-
-    function restoreScrollPosition(frame) {
-        try {
-            var doc = frame.contentDocument;
-            doc.documentElement.scrollTop = savedScrollPosition;
-            doc.body.scrollTop = savedScrollPosition;
-        } catch (e) {}
-    }
-
     function swapFrames() {
-        restoreScrollPosition(hiddenFrame);
+        // Bring the incoming frame to front while it's still opacity:0 (invisible),
+        // so the browser can render + scroll-position it without the user seeing page 1.
         hiddenFrame.style.zIndex = '1';
         activeFrame.style.zIndex = '0';
         var tmp = activeFrame;
         activeFrame = hiddenFrame;
         hiddenFrame = tmp;
-        status.textContent = 'ready';
-        vscode.postMessage({ type: 'paged-rendered' });
+        // Ask the content page to re-apply its scroll position now that it is the
+        // front frame — the browser may have deferred or ignored the scrollTop
+        // assignment made while it was behind the previous frame.
+        try { activeFrame.contentWindow.postMessage({ type: 'frame-visible' }, '*'); } catch(e) {}
+        // Reveal the frame after two animation frames: enough time for the browser
+        // to commit the correct scroll position before the user sees anything.
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                activeFrame.style.opacity = '1';
+                // Reset the outgoing frame's opacity so it is ready for the next swap.
+                hiddenFrame.style.opacity = '0';
+                status.textContent = 'ready';
+                vscode.postMessage({ type: 'paged-rendered' });
+            });
+        });
     }
 
     function reloadContent() {
-        saveScrollPosition();
         status.textContent = 'rendering...';
         expectedToken = String(Date.now());
-        hiddenFrame.src = serverOrigin + '/content?t=' + expectedToken;
+        // Ensure the incoming frame is invisible before we start loading new content.
+        hiddenFrame.style.opacity = '0';
+        hiddenFrame.src = serverOrigin + '/content?t=' + expectedToken + '&scroll=' + savedScrollRatio;
         startPolling(hiddenFrame, function() {
             if (expectedToken !== null) {
                 expectedToken = null;
@@ -229,6 +231,12 @@ class PreviewWebview {
 
     window.addEventListener('message', function (e) {
         if (!e.data) return;
+
+        // Scroll ratio from the active content frame (cross-origin postMessage).
+        if (e.data.type === 'scroll-update') {
+            savedScrollRatio = e.data.ratio;
+            return;
+        }
 
         if (e.data.type === 'paged-rendered') {
             var token = e.data.token || null;

@@ -2,6 +2,7 @@ node_modules/
 out/
 *.vsix
 .DS_Store
-plan/
+.plan/
 .github/
 test/
+CLAUDE.md

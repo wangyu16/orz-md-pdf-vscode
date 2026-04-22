@@ -14,8 +14,6 @@ esbuild.context({
         'vscode',
         // These large runtime modules stay external and load from extension/node_modules.
         'puppeteer-core',
-        // orz markdown parser
-        '@orz-how/markdown-parser',
         // highlight.js
         'highlight.js',
         // node-html-parser

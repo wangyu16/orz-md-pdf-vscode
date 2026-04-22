@@ -2,12 +2,17 @@
   "name": "orz-md-pdf",
   "displayName": "ORZ MD-PDF Editor",
   "description": "Edit and preview .md.pdf files — valid PDFs with embedded Markdown source.",
-  "version": "0.1.0",
+  "version": "1.0.0",
+  "author": {
+    "name": "Yu Wang",
+    "email": "yuwang@orz.how"
+  },
   "engines": { "vscode": "^1.88.0" },
-  "publisher": "orz-how",
+  "publisher": "yuwang26",
+  "icon": "assets/icon.png",
   "repository": {
     "type": "git",
-    "url": "git@github.com:wangyu16/orz-md-pdf-vscode.git"
+    "url": "git+https://github.com/wangyu16/orz-md-pdf-vscode.git"
   },
   "categories": ["Other"],
   "license": "MIT",
@@ -19,18 +24,31 @@
     "onCommand:orzMdPdf.exportPdf",
     "onCommand:orzMdPdf.togglePreview"
   ],
-  "files": [
-    "dist/**",
-    "src/**",
-    "README.md",
-    "LICENSE"
-  ],
   "scripts": {
     "build": "node build.js",
     "watch": "node build.js --watch",
     "vscode:prepublish": "node build.js"
   },
   "contributes": {
+    "languages": [
+      {
+        "id": "orz-md-source",
+        "aliases": ["Markdown Source"],
+        "extensions": [".orz-md"]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "orz-md-source",
+        "scopeName": "source.orz-md",
+        "path": "./syntaxes/orz-md.tmLanguage.json"
+      }
+    ],
+    "configurationDefaults": {
+      "[orz-md-source]": {
+        "editor.inlineSuggest.enabled": false
+      }
+    },
     "customEditors": [
       {
         "viewType": "orzMdPdf.editor",
@@ -77,12 +95,14 @@
       ]
     }
   },
+  "extensionDependencies": [
+    "yuwang26.orz-md-preview"
+  ],
   "devDependencies": {
     "@types/vscode": "^1.88.0",
     "esbuild": "^0.21.0"
   },
   "dependencies": {
-    "@orz-how/markdown-parser": "git+https://github.com/wangyu16/orz-markdown.git",
     "highlight.js": "^11.11.1",
     "mermaid": "^11.13.0",
     "node-html-parser": "^7.1.0",

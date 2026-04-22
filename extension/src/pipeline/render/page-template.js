@@ -363,15 +363,22 @@ function generatePagedHtml(contentHtml, userSettings = {}, _themeCss = null, pag
                 if (typeof existingPagedBefore === 'function') {
                     await existingPagedBefore();
                 }
-                // Wait for fonts with a 3 s timeout; Google Fonts can be slow
-                // in VS Code's webview and would otherwise block paged.js indefinitely.
-                await Promise.race([
-                    document.fonts.ready,
-                    new Promise(function(resolve) { setTimeout(resolve, 3000); }),
-                ]);
                 initTabs();
                 await renderMermaidBlocks();
                 await renderSmilesBlocks();
+            }
+        });
+        // Scroll ratio to restore after paged.js renders (read from ?scroll= URL param).
+        // Also re-applied when the webview shell sends a 'frame-visible' message, because
+        // the browser may paint the iframe at scrollTop=0 when it first becomes visible
+        // even though scrollTop was already set while the frame was behind another frame.
+        var _restoreScrollRatio = 0;
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'frame-visible' && _restoreScrollRatio > 0) {
+                var ms = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                var target = Math.round(_restoreScrollRatio * ms);
+                document.documentElement.scrollTop = target;
+                document.body.scrollTop = target;
             }
         });
     `;
@@ -431,6 +438,28 @@ if (window.PagedPolyfill) {
             previewStyle.textContent = ${JSON.stringify(renderedScreenCss)};
             document.head.appendChild(previewStyle);
         }
+        // Restore scroll position from ?scroll=ratio in the URL.
+        // The webview shell passes this when loading each new content frame so
+        // the view stays at roughly the same place after a re-render.
+        var scrollParam = (new URLSearchParams(location.search)).get('scroll');
+        if (scrollParam !== null) {
+            var ratio = parseFloat(scrollParam);
+            if (!isNaN(ratio) && ratio > 0) {
+                _restoreScrollRatio = ratio;
+                var maxScroll = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                var targetScroll = Math.round(ratio * maxScroll);
+                document.documentElement.scrollTop = targetScroll;
+                document.body.scrollTop = targetScroll;
+            }
+        }
+        // Report scroll changes to the webview shell (parent frame) so it can
+        // capture the current ratio before each reload — cross-origin access to
+        // contentDocument.scrollTop is blocked, so postMessage is the only channel.
+        window.addEventListener('scroll', function() {
+            var st = document.documentElement.scrollTop || document.body.scrollTop || 0;
+            var ms = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            try { window.parent.postMessage({ type: 'scroll-update', ratio: ms > 0 ? st / ms : 0 }, '*'); } catch(e) {}
+        }, { passive: true });
         window.__pagedRendered = true;
         var renderMessage = { type: 'paged-rendered', token: (new URLSearchParams(location.search)).get('t') };
         [0, 150, 500, 1200].forEach(function(delay) {
